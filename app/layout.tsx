@@ -134,6 +134,41 @@ export default function RootLayout({
             __html: JSON.stringify(schemaData),
           }}
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Cookie Consent Management (GDPR/CCPA/DPDP Compliant)
+              (function() {
+                function enableTracking() {
+                  // Initialize Google AdSense (add your publisher ID)
+                  window.adsbygoogle = window.adsbygoogle || [];
+                  
+                  // Initialize Google Analytics (add your GA4 ID)
+                  // window.dataLayer = window.dataLayer || [];
+                  // function gtag(){dataLayer.push(arguments);}
+                  // gtag('js', new Date());
+                  // gtag('config', 'G-XXXXXXXXXX');
+                  
+                  console.log('✅ Tracking enabled - User consented to cookies');
+                  
+                  // Dispatch event for other scripts
+                  window.dispatchEvent(new CustomEvent('cookieConsentAccepted'));
+                }
+
+                // Check consent on page load
+                window.addEventListener('load', function() {
+                  const consent = localStorage.getItem('cookieConsent');
+                  if (consent === 'accepted') {
+                    enableTracking();
+                  }
+                });
+
+                // Listen for consent changes
+                window.addEventListener('cookieConsentAccepted', enableTracking);
+              })();
+            `,
+          }}
+        />
       </head>
       <body className="font-sans antialiased bg-gray-50 text-gray-900" suppressHydrationWarning>
         <Header />

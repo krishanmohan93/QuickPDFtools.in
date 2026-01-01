@@ -25,3 +25,212 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Cookie Banner Animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+/* ===== PROFESSIONAL MICRO-ANIMATIONS ===== */
+
+/* 1. Page Load Fade-In */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.page-fade-in {
+  animation: page-fade-in 180ms ease-out;
+}
+
+/* Apply to all main content */
+main {
+  animation: page-fade-in 180ms ease-out;
+}
+
+/* 2. Button Hover Animation */
+button,
+.btn,
+a[role="button"],
+input[type="submit"],
+input[type="button"] {
+  transition: all 120ms ease-out;
+  cursor: pointer;
+}
+
+button:hover,
+.btn:hover,
+a[role="button"]:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+button:active,
+.btn:active,
+a[role="button"]:active,
+input[type="submit"]:active,
+input[type="button"]:active {
+  transform: translateY(0);
+}
+
+/* 3. Upload Area Animation */
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: rgb(191, 219, 254);
+  }
+  50% {
+    border-color: rgb(96, 165, 250);
+  }
+}
+
+.upload-area {
+  transition: all 200ms ease-out;
+}
+
+.upload-area.idle {
+  animation: pulse-border 2.5s ease-in-out infinite;
+}
+
+.upload-area:hover {
+  border-color: rgb(59, 130, 246);
+  background-color: rgb(239, 246, 255);
+}
+
+/* 4. Tool Result Reveal */
+@keyframes result-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-panel {
+  animation: result-reveal 160ms ease-out;
+}
+
+/* 5. Input Focus */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  transition: all 150ms ease-out;
+  outline: none;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: rgb(59, 130, 246);
+}
+
+/* 6. Navigation Hover */
+nav a {
+  position: relative;
+  transition: color 140ms ease-out;
+}
+
+nav a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: currentColor;
+  transition: width 140ms ease-out;
+}
+
+nav a:hover::after {
+  width: 100%;
+}
+
+/* Additional Professional Touches */
+
+/* Card Hover */
+.card,
+.tool-card {
+  transition: all 180ms ease-out;
+}
+
+.card:hover,
+.tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Link Hover */
+a {
+  transition: color 120ms ease-out;
+}
+
+/* Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Loading State (Non-blocking) */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 150ms ease-out;
+}
+
+/* Success/Error Messages */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.message-toast {
+  animation: slide-in-right 180ms ease-out;
+}
+
+/* Prevent Layout Shift */
+* {
+  box-sizing: border-box;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Performance Optimization */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,87 @@
+# robots.txt for QuickPDFTools - Optimized for Google AdSense & SEO
+
+# Allow all search engines to crawl the entire site
+User-agent: *
+Allow: /
+
+# Disallow crawling of API routes (they're not meant for search engines)
+Disallow: /api/
+
+# Disallow crawling of private/admin areas (if any)
+Disallow: /_next/
+Disallow: /static/
+
+# Allow crawling of all PDF tool pages
+Allow: /merge-pdf
+Allow: /split-pdf
+Allow: /compress-pdf
+Allow: /pdf-to-word
+Allow: /word-to-pdf
+Allow: /pdf-to-jpg
+Allow: /jpg-to-pdf
+Allow: /pdf-to-png
+Allow: /png-to-pdf
+Allow: /pdf-to-excel
+Allow: /excel-to-pdf
+Allow: /pdf-to-ppt
+Allow: /ppt-to-pdf
+Allow: /protect-pdf
+Allow: /unlock-pdf
+Allow: /rotate-pdf
+Allow: /reorder-pdf
+Allow: /edit-pdf
+
+# Allow crawling of important pages
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /dmca
+
+# Sitemap location for better indexing
+Sitemap: https://quickpdftools.in/sitemap.xml
+
+# Crawl-delay (optional, helps prevent server overload)
+# Crawl-delay: 1
+
+# Specific rules for major search engines
+
+# Google
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# Google Images
+User-agent: Googlebot-Image
+Allow: /
+
+# Google AdSense Bot
+User-agent: Mediapartners-Google
+Allow: /
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# Yahoo
+User-agent: Slurp
+Allow: /
+Disallow: /api/
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /api/
+
+# Yandex
+User-agent: YandexBot
+Allow: /
+Disallow: /api/
+
+# Baidu
+User-agent: Baiduspider
+Allow: /
+Disallow: /api/

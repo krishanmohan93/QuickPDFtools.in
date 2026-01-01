@@ -1,55 +1,55 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
 
 export default function CookieConsent() {
-  const [showBanner, setShowBanner] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !localStorage.getItem('cookieConsent');
-    }
-    return false;
-  });
+  const [show, setShow] = useState(false);
 
-  const handleAccept = () => {
-    localStorage.setItem('cookieConsent', 'accepted');
-    setShowBanner(false);
+  useEffect(() => {
+    const saved = localStorage.getItem("cookieConsent");
+    if (!saved) setShow(true);
+  }, []);
+
+  const accept = () => {
+    localStorage.setItem("cookieConsent", "accepted");
+    setShow(false);
+    loadTracking();
   };
 
-  const handleReject = () => {
-    localStorage.setItem('cookieConsent', 'rejected');
-    setShowBanner(false);
+  const reject = () => {
+    localStorage.setItem("cookieConsent", "rejected");
+    setShow(false);
   };
 
-  if (!showBanner) return null;
+  const loadTracking = () => {
+    if ((window as any)._trackingLoaded) return;
+    (window as any)._trackingLoaded = true;
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg p-4 md:p-6">
-      <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between">
-        <div className="mb-4 md:mb-0 md:mr-6">
-          <p className="text-sm text-gray-700">
-            We use cookies to enhance your experience. By continuing to use our site, you agree to our{' '}
-            <Link href="/privacy-policy" className="text-blue-600 hover:underline">
-              Privacy Policy
-            </Link>
-            .
-          </p>
-        </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={handleReject}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
-          >
-            Reject Non-Essential
-          </button>
-          <button
-            onClick={handleAccept}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Accept All
-          </button>
-        </div>
+    console.log("Tracking enabled - AdSense/Analytics ready");
+
+    // Example AdSense loader (add your real code here)
+    // const s = document.createElement("script");
+    // s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
+    // s.async = true;
+    // document.head.appendChild(s);
+  };
+
+  return show ? (
+    <div id="cookieBanner" className="fixed bottom-0 w-full bg-white border-t p-4 flex justify-between items-center z-50">
+      <p className="text-sm">
+        We use cookies to enhance your experience. By continuing to use our site, you agree to our{' '}
+        <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a>
+        {' '}and{' '}
+        <a href="/terms" className="text-blue-600 hover:underline">Terms & Conditions</a>.
+      </p>
+      <div className="flex gap-2">
+        <button onClick={reject} className="bg-gray-200 px-4 py-2 rounded">
+          Reject Non-Essential
+        </button>
+        <button onClick={accept} className="bg-blue-600 text-white px-4 py-2 rounded">
+          Accept All
+        </button>
       </div>
     </div>
-  );
+  ) : null;
 }

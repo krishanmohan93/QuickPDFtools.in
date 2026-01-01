@@ -51,7 +51,10 @@ async function parseContentStreams(pdfBuffer: Buffer): Promise<ContentTextObject
 
   try {
     // Use pdf-parse to extract text content with positioning
-    const data = await pdfParse(pdfBuffer);
+    const data = await pdfParse(pdfBuffer, {
+      max: 0,
+      normalizeWhitespace: true,
+    });
 
     // pdf-parse gives us text content but not raw content streams
     // For true content stream parsing, we'd need a lower-level PDF parser

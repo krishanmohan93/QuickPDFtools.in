@@ -8,8 +8,21 @@ const pdfParse = require("pdf-parse");
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
-        const file = formData.get("file0") as File;
+
+        // Log all form data keys for debugging
+        console.log("FormData keys:", Array.from(formData.keys()));
+
+        // Try to get file with different possible keys
+        let file = formData.get("file0") as File;
+        if (!file) {
+            file = formData.get("file") as File;
+        }
+
         const conversionMode = formData.get("conversionMode") as string || "text"; // text, formatted
+
+        console.log("File received:", file ? file.name : "NO FILE");
+        console.log("File type:", file ? file.type : "N/A");
+        console.log("File size:", file ? file.size : "N/A");
 
         if (!file) {
             return NextResponse.json(
@@ -23,9 +36,28 @@ export async function POST(request: NextRequest) {
         const pdfDoc = await PDFDocument.load(arrayBuffer);
         const totalPages = pdfDoc.getPageCount();
 
-        // Extract text from PDF
+        // Extract text from PDF with better error handling
         const pdfBuffer = Buffer.from(arrayBuffer);
-        const pdfData = await pdfParse(pdfBuffer);
+        let pdfData;
+        let textContent = "";
+
+        try {
+            pdfData = await pdfParse(pdfBuffer, {
+                // Increase max buffer size
+                max: 0,
+                // Normalize whitespace
+                normalizeWhitespace: true,
+            });
+            textContent = pdfData.text || "";
+        } catch (parseError) {
+            console.warn("PDF parsing warning:", parseError);
+            // Fallback: create a basic document
+            textContent = `This PDF contains ${totalPages} page(s).\n\nThe text content could not be extracted automatically. This may be because the PDF contains scanned images or uses a complex layout.\n\nPlease try using OCR software if you need to extract text from this document.`;
+            pdfData = {
+                text: textContent,
+                numpages: totalPages,
+            };
+        }
 
         // Build document children array
         const children: any[] = [
@@ -45,7 +77,7 @@ export async function POST(request: NextRequest) {
             new Paragraph({
                 children: [
                     new TextRun({
-                        text: `Converted from PDF • ${totalPages} pages • ${pdfData.numpages} text pages`,
+                        text: `Converted from PDF • ${totalPages} pages`,
                         size: 20,
                         color: "666666",
                     }),
@@ -56,8 +88,6 @@ export async function POST(request: NextRequest) {
         ];
 
         // Process text content
-        const textContent = pdfData.text;
-
         if (conversionMode === "formatted") {
             // Try to preserve some formatting
             const paragraphs = textContent.split('\n\n').filter((p: string) => p.trim());
@@ -71,9 +101,9 @@ export async function POST(request: NextRequest) {
 
                     // Detect headings (simple heuristic)
                     const isHeading = trimmedLine.length < 100 &&
-                                    !trimmedLine.includes('.') &&
-                                    !trimmedLine.includes(',') &&
-                                    /^[A-Z\s]+$/.test(trimmedLine.toUpperCase());
+                        !trimmedLine.includes('.') &&
+                        !trimmedLine.includes(',') &&
+                        /^[A-Z\s]+$/.test(trimmedLine.toUpperCase());
 
                     children.push(
                         new Paragraph({
@@ -94,17 +124,19 @@ export async function POST(request: NextRequest) {
             const paragraphs = textContent.split('\n\n').filter((p: string) => p.trim());
 
             for (const paragraph of paragraphs) {
-                children.push(
-                    new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: paragraph.trim(),
-                                size: 24,
-                            }),
-                        ],
-                        spacing: { after: 200 },
-                    })
-                );
+                if (paragraph.trim()) {
+                    children.push(
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: paragraph.trim(),
+                                    size: 24,
+                                }),
+                            ],
+                            spacing: { after: 200 },
+                        })
+                    );
+                }
             }
         }
 
@@ -124,6 +156,8 @@ export async function POST(request: NextRequest) {
             throw new Error("Generated Word document is too small or invalid");
         }
 
+        console.log("Conversion successful! Document size:", buffer.length, "bytes");
+
         // Return the Word document
         const response = new NextResponse(new Uint8Array(buffer), {
             status: 200,
@@ -131,7 +165,6 @@ export async function POST(request: NextRequest) {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}.docx`,
                 "X-Original-Pages": totalPages.toString(),
-                "X-Text-Pages": pdfData.numpages.toString(),
                 "X-Conversion-Mode": conversionMode,
             },
         });

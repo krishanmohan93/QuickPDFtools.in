@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // Add empty turbopack config to silence the warning
+    turbopack: {},
+
     webpack: (config, { isServer }) => {
         config.resolve.alias.canvas = false;
         config.resolve.alias.encoding = false;

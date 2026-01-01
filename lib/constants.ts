@@ -1,6 +1,6 @@
 export const SITE_NAME = "QuickPDFTools";
 export const AUTHOR_NAME = "QuickPDFTools Team";
-export const CONTACT_EMAIL = "support@quickpdftools.in";
+export const CONTACT_EMAIL = "krishanmohankumar9311@gmail.com";
 export const SITE_DESCRIPTION = "Professional PDF Tools - Convert, Merge, Split, Compress PDFs Online for Free";
 export const SITE_URL = "https://quickpdftools.in";
 export const SITE_KEYWORDS = "pdf tools, convert pdf, merge pdf, split pdf, compress pdf, pdf to word, word to pdf, pdf converter";

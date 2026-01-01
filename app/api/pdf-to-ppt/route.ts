@@ -14,7 +14,13 @@ export async function POST(request: NextRequest) {
 
     try {
         const formData = await request.formData();
-        const file = formData.get("file0") as File;
+
+        // Try to get file with different possible keys
+        let file = formData.get("file0") as File;
+        if (!file) {
+            file = formData.get("file") as File;
+        }
+
         const conversionMode = formData.get("conversionMode") as string || "images"; // images, text
 
         if (!file) {
@@ -66,8 +72,19 @@ export async function POST(request: NextRequest) {
         } else {
             // Extract text and create text-based slides
             const pdfBuffer = Buffer.from(arrayBuffer);
-            const pdfData = await pdfParse(pdfBuffer);
-            const textContent = pdfData.text;
+            let textContent = "";
+
+            try {
+                const pdfData = await pdfParse(pdfBuffer, {
+                    max: 0,
+                    normalizeWhitespace: true,
+                });
+                textContent = pdfData.text || "";
+            } catch (parseError) {
+                console.warn("PDF parsing warning:", parseError);
+                textContent = `PDF Content (${totalPages} pages)\n\nText extraction failed. This PDF may contain scanned images or complex layouts.`;
+            }
+
 
             // Split text into slides (roughly 500 characters per slide)
             const slideTexts = splitTextIntoSlides(textContent, 500);

@@ -8,7 +8,13 @@ const pdfParse = require("pdf-parse");
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
-        const file = formData.get("file0") as File;
+
+        // Try to get file with different possible keys
+        let file = formData.get("file0") as File;
+        if (!file) {
+            file = formData.get("file") as File;
+        }
+
         const extractionMode = formData.get("extractionMode") as string || "tables"; // tables, text
 
         if (!file) {
@@ -23,16 +29,32 @@ export async function POST(request: NextRequest) {
         const pdfDoc = await PDFDocument.load(arrayBuffer);
         const totalPages = pdfDoc.getPageCount();
 
-        // Extract text from PDF
+        // Extract text from PDF with better error handling
         const pdfBuffer = Buffer.from(arrayBuffer);
-        const pdfData = await pdfParse(pdfBuffer);
+        let pdfData;
+        let textContent = "";
+
+        try {
+            pdfData = await pdfParse(pdfBuffer, {
+                max: 0,
+                normalizeWhitespace: true,
+            });
+            textContent = pdfData.text || "";
+        } catch (parseError) {
+            console.warn("PDF parsing warning:", parseError);
+            textContent = `PDF Content (${totalPages} pages)\n\nText extraction failed. This PDF may contain scanned images or complex layouts.`;
+            pdfData = {
+                text: textContent,
+                numpages: totalPages,
+            };
+        }
 
         // Create workbook
         const workbook = XLSX.utils.book_new();
 
         if (extractionMode === "tables") {
             // Try to extract tabular data
-            const tables = extractTablesFromText(pdfData.text);
+            const tables = extractTablesFromText(textContent);
 
             if (tables.length > 0) {
                 // Create separate sheets for each table
@@ -42,13 +64,13 @@ export async function POST(request: NextRequest) {
                 });
             } else {
                 // Fallback to text extraction
-                const textData = convertTextToRows(pdfData.text);
+                const textData = convertTextToRows(textContent);
                 const worksheet = XLSX.utils.aoa_to_sheet(textData);
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Extracted_Text");
             }
         } else {
             // Simple text extraction
-            const textData = convertTextToRows(pdfData.text);
+            const textData = convertTextToRows(textContent);
             const worksheet = XLSX.utils.aoa_to_sheet(textData);
             XLSX.utils.book_append_sheet(workbook, worksheet, "PDF_Content");
         }
