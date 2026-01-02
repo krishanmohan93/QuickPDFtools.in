@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
 import { PDFDocument } from "pdf-lib";
 
-// Import pdf-parse using require for CommonJS compatibility
-const pdfParse = require("pdf-parse");
+// Import pdf-parse with fallback for build compatibility
+let pdfParse: any;
+try {
+    pdfParse = require("pdf-parse");
+} catch (e) {
+    console.warn("pdf-parse not available");
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -42,13 +47,17 @@ export async function POST(request: NextRequest) {
         let textContent = "";
 
         try {
-            pdfData = await pdfParse(pdfBuffer, {
-                // Increase max buffer size
-                max: 0,
-                // Normalize whitespace
-                normalizeWhitespace: true,
-            });
-            textContent = pdfData.text || "";
+            if (pdfParse) {
+                pdfData = await pdfParse(pdfBuffer, {
+                    // Increase max buffer size
+                    max: 0,
+                    // Normalize whitespace
+                    normalizeWhitespace: true,
+                });
+                textContent = pdfData.text || "";
+            } else {
+                throw new Error("pdf-parse not available");
+            }
         } catch (parseError) {
             console.warn("PDF parsing warning:", parseError);
             // Fallback: create a basic document

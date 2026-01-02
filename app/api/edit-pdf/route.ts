@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import PDFKit from 'pdfkit';
-const pdfParse = require('pdf-parse');
+
+// Import pdf-parse with fallback for build compatibility
+let pdfParse: any;
+try {
+  pdfParse = require('pdf-parse');
+} catch (e) {
+  console.warn('pdf-parse not available');
+}
 
 /**
  * API Route for TRUE PDF text editing (Phase 2)
