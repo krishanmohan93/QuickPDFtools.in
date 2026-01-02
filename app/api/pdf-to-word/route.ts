@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         console.log("Conversion successful! Document size:", buffer.length, "bytes");
 
         // Return the Word document
-        const response = new NextResponse(new Uint8Array(buffer), {
+        const response = new NextResponse(Buffer.from(buffer), {
             status: 200,
             headers: {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -186,3 +186,4 @@ export async function POST(request: NextRequest) {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

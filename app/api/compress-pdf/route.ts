@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import sharp from 'sharp';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { tmpdir } from 'os';
 
 export async function POST(request: NextRequest) {
-    let tempFiles: string[] = [];
 
     try {
         const formData = await request.formData();
@@ -53,7 +49,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Return the compressed PDF with metadata
-        const response = new NextResponse(new Uint8Array(compressedPdfBytes), {
+        const response = new NextResponse(Buffer.from(compressedPdfBytes), {
             status: 200,
             headers: {
                 "Content-Type": "application/pdf",
@@ -72,15 +68,6 @@ export async function POST(request: NextRequest) {
             { error: `Failed to compress PDF: ${error instanceof Error ? error.message : 'Unknown error'}` },
             { status: 500 }
         );
-    } finally {
-        // Cleanup temp files
-        for (const tempFile of tempFiles) {
-            try {
-                await fs.unlink(tempFile);
-            } catch (e) {
-                console.warn(`Failed to cleanup temp file: ${tempFile}`);
-            }
-        }
     }
 }
 
@@ -199,3 +186,4 @@ async function compressImage(imageData: Buffer, settings: any): Promise<Buffer> 
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

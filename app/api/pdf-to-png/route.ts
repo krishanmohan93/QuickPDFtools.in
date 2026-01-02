@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
-import Jimp from "jimp";
 
 export async function POST(request: NextRequest) {
     try {
@@ -27,42 +26,44 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // For serverless compatibility, we return a simple SVG placeholder
+        // In production, consider using client-side rendering with PDF.js
         const page = pages[0];
         const { width, height } = page.getSize();
 
-        // Create a white image
-        const image = new Jimp(Math.floor(width), Math.floor(height), 0xFFFFFFFF);
+        // Create SVG placeholder
+        const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${Math.floor(width)}" height="${Math.floor(height)}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="#ffffff"/>
+    <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#333">
+        PDF to PNG Conversion
+    </text>
+    <text x="50%" y="60%" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666">
+        Page 1 of ${pages.length}
+    </text>
+    <text x="50%" y="70%" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#999">
+        For high-quality conversion, use client-side rendering
+    </text>
+</svg>`;
 
-        // Add text
-        const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-        image.print(
-            font,
-            10,
-            10,
-            {
-                text: "PDF Page Converted to PNG\n\nNote: For production use, integrate\na proper PDF rendering library\nlike pdf2pic or pdfjs-dist",
-                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
-            },
-            Math.floor(width),
-            Math.floor(height)
-        );
-
-        // Convert to buffer
-        const buffer = await image.getBufferAsync(Jimp.MIME_PNG);
-
-        return new NextResponse(buffer, {
+        // Return SVG (browsers can display this directly)
+        return new NextResponse(svg, {
             status: 200,
             headers: {
-                "Content-Type": "image/png",
-                "Content-Disposition": "attachment; filename=page-1.png",
+                "Content-Type": "image/svg+xml",
+                "Content-Disposition": `attachment; filename=page-1.svg`,
+                "X-Total-Pages": pages.length.toString(),
             },
         });
     } catch (error) {
         console.error("Error converting PDF to PNG:", error);
         return NextResponse.json(
-            { error: "Failed to convert PDF to PNG. For production, please integrate pdf2pic or similar library." },
+            {
+                error: "Failed to convert PDF to PNG",
+                note: "For production-quality conversion, consider using client-side PDF.js rendering"
+            },
             { status: 500 }
         );
     }
 }
+

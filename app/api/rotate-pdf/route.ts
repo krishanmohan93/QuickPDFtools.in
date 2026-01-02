@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Return the rotated PDF
-        const response = new NextResponse(new Uint8Array(rotatedPdfBytes), {
+        const response = new NextResponse(Buffer.from(rotatedPdfBytes), {
             status: 200,
             headers: {
                 "Content-Type": "application/pdf",
@@ -126,3 +126,4 @@ function parsePageRange(rangeStr: string, totalPages: number): number[] {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import PptxGenJS from "pptxgenjs";
 import { PDFDocument } from "pdf-lib";
-import sharp from 'sharp';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { tmpdir } from 'os';
 
-// Import pdf-parse using require for CommonJS compatibility
-const pdfParse = require("pdf-parse");
+// Import pdf-parse with fallback for build compatibility
+let pdfParse: any;
+try {
+    pdfParse = require("pdf-parse");
+} catch (e) {
+    console.warn("pdf-parse not available, text extraction will be limited");
+}
 
 export async function POST(request: NextRequest) {
-    let tempFiles: string[] = [];
-
     try {
         const formData = await request.formData();
 
@@ -21,7 +20,7 @@ export async function POST(request: NextRequest) {
             file = formData.get("file") as File;
         }
 
-        const conversionMode = formData.get("conversionMode") as string || "images"; // images, text
+        const conversionMode = formData.get("conversionMode") as string || "text"; // text mode only (serverless-safe)
 
         if (!file) {
             return NextResponse.json(
@@ -46,94 +45,68 @@ export async function POST(request: NextRequest) {
         pptx.subject = `Converted from PDF - ${totalPages} pages`;
         pptx.author = 'PDF Master Tools';
 
-        if (conversionMode === "images") {
-            // Convert each page to image and add as slides
-            const images = await convertPDFPagesToImages(arrayBuffer, totalPages);
+        // Extract text and create text-based slides (serverless-compatible)
+        const pdfBuffer = Buffer.from(arrayBuffer);
+        let textContent = "";
 
-            for (let i = 0; i < images.length; i++) {
-                const slide = pptx.addSlide();
+        try {
+            const pdfData = await pdfParse(pdfBuffer, {
+                max: 0,
+                normalizeWhitespace: true,
+            });
+            textContent = pdfData.text || "";
+        } catch (parseError) {
+            console.warn("PDF parsing warning:", parseError);
+            textContent = `PDF Content (${totalPages} pages)\n\nText extraction failed. This PDF may contain scanned images or complex layouts.`;
+        }
 
-                // Add page image as background fill
-                slide.background = { data: `data:image/png;base64,${images[i]}` };
+        // Split text into slides (roughly 500 characters per slide)
+        const slideTexts = splitTextIntoSlides(textContent, 500);
 
-                // Add slide title
-                slide.addText(`Page ${i + 1} of ${totalPages}`, {
+        for (let i = 0; i < slideTexts.length; i++) {
+            const slide = pptx.addSlide();
+
+            // Add title slide for first slide
+            if (i === 0) {
+                slide.addText(getFileNameWithoutExtension(file.name), {
+                    x: 1,
+                    y: 1,
+                    w: 8,
+                    h: 1,
+                    fontSize: 32,
+                    bold: true,
+                    align: 'center'
+                });
+
+                slide.addText(`Converted from PDF • ${totalPages} pages`, {
+                    x: 1,
+                    y: 2.5,
+                    w: 8,
+                    h: 0.5,
+                    fontSize: 18,
+                    color: '666666',
+                    align: 'center'
+                });
+            } else {
+                // Content slides
+                slide.addText(`Page ${i} of ${slideTexts.length - 1}`, {
                     x: 0.5,
                     y: 0.2,
                     w: 9,
-                    h: 0.5,
-                    fontSize: 18,
-                    color: 'FFFFFF',
-                    bold: true,
-                    align: 'center',
-                    shadow: { type: 'outer', color: '000000', blur: 1, opacity: 0.5 }
+                    h: 0.3,
+                    fontSize: 14,
+                    color: '666666'
                 });
-            }
-        } else {
-            // Extract text and create text-based slides
-            const pdfBuffer = Buffer.from(arrayBuffer);
-            let textContent = "";
 
-            try {
-                const pdfData = await pdfParse(pdfBuffer, {
-                    max: 0,
-                    normalizeWhitespace: true,
+                slide.addText(slideTexts[i], {
+                    x: 0.5,
+                    y: 0.6,
+                    w: 9,
+                    h: 4.5,
+                    fontSize: 16,
+                    valign: 'top',
+                    wrap: true
                 });
-                textContent = pdfData.text || "";
-            } catch (parseError) {
-                console.warn("PDF parsing warning:", parseError);
-                textContent = `PDF Content (${totalPages} pages)\n\nText extraction failed. This PDF may contain scanned images or complex layouts.`;
-            }
-
-
-            // Split text into slides (roughly 500 characters per slide)
-            const slideTexts = splitTextIntoSlides(textContent, 500);
-
-            for (let i = 0; i < slideTexts.length; i++) {
-                const slide = pptx.addSlide();
-
-                // Add title slide for first slide
-                if (i === 0) {
-                    slide.addText(getFileNameWithoutExtension(file.name), {
-                        x: 1,
-                        y: 1,
-                        w: 8,
-                        h: 1,
-                        fontSize: 32,
-                        bold: true,
-                        align: 'center'
-                    });
-
-                    slide.addText(`Converted from PDF • ${totalPages} pages`, {
-                        x: 1,
-                        y: 2.5,
-                        w: 8,
-                        h: 0.5,
-                        fontSize: 18,
-                        color: '666666',
-                        align: 'center'
-                    });
-                } else {
-                    // Content slides
-                    slide.addText(`Page ${i} of ${slideTexts.length - 1}`, {
-                        x: 0.5,
-                        y: 0.2,
-                        w: 9,
-                        h: 0.3,
-                        fontSize: 14,
-                        color: '666666'
-                    });
-
-                    slide.addText(slideTexts[i], {
-                        x: 0.5,
-                        y: 0.6,
-                        w: 9,
-                        h: 4.5,
-                        fontSize: 16,
-                        valign: 'top',
-                        wrap: true
-                    });
-                }
             }
         }
 
@@ -146,14 +119,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Return the PowerPoint file
-        const response = new NextResponse(pptxBuffer, {
+        const response = new NextResponse(Buffer.from(pptxBuffer), {
             status: 200,
             headers: {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                 "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}.pptx`,
                 "X-Original-Pages": totalPages.toString(),
                 "X-Conversion-Mode": conversionMode,
-                "X-Slides-Generated": conversionMode === "images" ? totalPages.toString() : "text-based",
+                "X-Slides-Generated": slideTexts.length.toString(),
             },
         });
 
@@ -165,93 +138,7 @@ export async function POST(request: NextRequest) {
             { error: `Failed to convert PDF to PowerPoint: ${error instanceof Error ? error.message : 'Unknown error'}` },
             { status: 500 }
         );
-    } finally {
-        // Cleanup temp files
-        for (const tempFile of tempFiles) {
-            try {
-                await fs.unlink(tempFile);
-            } catch (e) {
-                console.warn(`Failed to cleanup temp file: ${tempFile}`);
-            }
-        }
     }
-}
-
-/**
- * Convert PDF pages to images using pdf2pic
- */
-async function convertPDFPagesToImages(pdfBuffer: ArrayBuffer, totalPages: number): Promise<string[]> {
-    const images: string[] = [];
-
-    try {
-        // Import pdf2pic dynamically
-        const pdf2pic = (await import('pdf2pic')).default;
-
-        // Create temp file
-        const tempDir = tmpdir();
-        const tempPdfPath = path.join(tempDir, `temp_${Date.now()}.pdf`);
-        await fs.writeFile(tempPdfPath, Buffer.from(pdfBuffer));
-
-        // Convert each page to image
-        const convert = pdf2pic.fromPath(tempPdfPath, {
-            density: 150,
-            saveFilename: "page",
-            savePath: tempDir,
-            format: "png",
-            width: 1024,
-            height: 768
-        });
-
-        for (let i = 1; i <= Math.min(totalPages, 50); i++) { // Limit to 50 pages for performance
-            try {
-                const result = await convert(i);
-                if (result && typeof result === 'object' && 'base64' in result) {
-                    images.push((result as any).base64);
-                }
-            } catch (pageError) {
-                console.warn(`Failed to convert page ${i}:`, pageError);
-            }
-        }
-
-        // Cleanup temp file
-        try {
-            await fs.unlink(tempPdfPath);
-        } catch (e) {
-            console.warn('Failed to cleanup temp PDF file');
-        }
-
-    } catch (error) {
-        console.warn('pdf2pic conversion failed, using fallback:', error);
-        // Fallback: create placeholder images
-        for (let i = 0; i < Math.min(totalPages, 10); i++) {
-            images.push(createPlaceholderImage(i + 1, totalPages));
-        }
-    }
-
-    return images;
-}
-
-/**
- * Create a placeholder image for slides
- */
-function createPlaceholderImage(pageNum: number, totalPages: number): string {
-    // Create a simple colored rectangle with text using a data URL
-    // In a real implementation, you'd use canvas or a proper image library
-    const svg = `
-        <svg width="1024" height="768" xmlns="http://www.w3.org/2000/svg">
-            <rect width="1024" height="768" fill="#f0f0f0"/>
-            <text x="512" y="384" font-family="Arial" font-size="48" text-anchor="middle" fill="#666">
-                Page ${pageNum} of ${totalPages}
-            </text>
-            <text x="512" y="450" font-family="Arial" font-size="24" text-anchor="middle" fill="#999">
-                (Image conversion failed)
-            </text>
-        </svg>
-    `;
-
-    // Convert SVG to base64
-    const base64 = Buffer.from(svg).toString('base64');
-    return base64;
 }
 
 /**
@@ -296,3 +183,4 @@ function splitTextIntoSlides(text: string, maxCharsPerSlide: number): string[] {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

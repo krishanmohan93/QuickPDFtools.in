@@ -77,8 +77,9 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('API Error:', error);
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 });
+            return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
         }
         return NextResponse.json({ error: 'Failed to submit', debug: String(error) }, { status: 500 });
     }
 }
+

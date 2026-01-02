@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Return the reordered PDF
-        const response = new NextResponse(new Uint8Array(reorderedPdfBytes), {
+        const response = new NextResponse(Buffer.from(reorderedPdfBytes), {
             status: 200,
             headers: {
                 "Content-Type": "application/pdf",
@@ -107,3 +107,4 @@ export async function POST(request: NextRequest) {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

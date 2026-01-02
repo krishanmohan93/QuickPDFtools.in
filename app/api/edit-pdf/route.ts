@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import PDFKit from 'pdfkit';
 const pdfParse = require('pdf-parse');
-import fs from 'fs';
-import path from 'path';
 
 /**
  * API Route for TRUE PDF text editing (Phase 2)
@@ -256,3 +254,4 @@ export async function GET() {
     },
   });
 }
+

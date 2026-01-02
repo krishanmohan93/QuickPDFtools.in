@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Return the ZIP file
-        const response = new NextResponse(new Uint8Array(zipBlob), {
+        const response = new NextResponse(Buffer.from(zipBlob), {
             status: 200,
             headers: {
                 "Content-Type": "application/zip",
@@ -177,3 +177,4 @@ function parsePageRanges(rangeStr: string, totalPages: number): number[][] {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

@@ -73,7 +73,7 @@ export const PDF_TOOLS = [
         description: "Convert PDF pages to JPG images",
         icon: "image",
         path: "/pdf-to-jpg",
-        color: "#EA580C",
+        color: "#cc7648ff",
     },
     {
         id: "jpg-to-pdf",

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Return the PDF
-        const response = new NextResponse(new Uint8Array(pdfBuffer), {
+        const response = new NextResponse(Buffer.from(pdfBuffer), {
             status: 200,
             headers: {
                 "Content-Type": "application/pdf",
@@ -202,3 +202,4 @@ function createPDFFromExcel(workbook: XLSX.WorkBook, title: string): Promise<Buf
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

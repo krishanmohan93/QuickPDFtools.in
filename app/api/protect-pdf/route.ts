@@ -80,3 +80,4 @@ function parsePermissions(permissionStr: string) {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+

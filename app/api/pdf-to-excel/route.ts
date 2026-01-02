@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Return the Excel file
-        const response = new NextResponse(new Uint8Array(excelBuffer), {
+        const response = new NextResponse(Buffer.from(excelBuffer), {
             status: 200,
             headers: {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -199,3 +199,4 @@ function convertTextToRows(text: string): string[][] {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+
