@@ -1,11 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { SITE_NAME } from "@/lib/constants";
+import { useState, useRef, useEffect } from "react";
+import { SITE_NAME, PDF_TOOLS } from "@/lib/constants";
 
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isToolsOpen, setIsToolsOpen] = useState(false);
+    const toolsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (toolsTimeoutRef.current) {
+                clearTimeout(toolsTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleToolsMouseEnter = () => {
+        if (toolsTimeoutRef.current) {
+            clearTimeout(toolsTimeoutRef.current);
+        }
+        toolsTimeoutRef.current = setTimeout(() => {
+            setIsToolsOpen(true);
+        }, 200); // 200ms delay before showing
+    };
+
+    const handleToolsMouseLeave = () => {
+        if (toolsTimeoutRef.current) {
+            clearTimeout(toolsTimeoutRef.current);
+        }
+        toolsTimeoutRef.current = setTimeout(() => {
+            setIsToolsOpen(false);
+        }, 300); // 300ms delay before hiding
+    };
 
     return (
         <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
@@ -30,6 +59,55 @@ export default function Header() {
                         <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                             Home
                         </Link>
+                        
+                        {/* Tools Dropdown */}
+                        <div className="relative group">
+                            <button 
+                                className="text-gray-700 hover:text-blue-600 font-medium transition-colors flex items-center gap-1"
+                                onMouseEnter={handleToolsMouseEnter}
+                                onMouseLeave={handleToolsMouseLeave}
+                            >
+                                Tools
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {isToolsOpen && (
+                                <div 
+                                    className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                                    onMouseEnter={handleToolsMouseEnter}
+                                    onMouseLeave={handleToolsMouseLeave}
+                                >
+                                    <div className="max-h-96 overflow-y-auto">
+                                        {PDF_TOOLS.map((tool) => (
+                                            <Link
+                                                key={tool.id}
+                                                href={tool.path}
+                                                className="block px-4 py-2 hover:bg-blue-50 transition-colors"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div 
+                                                        className="w-2 h-2 rounded-full mt-2 flex-shrink-0"
+                                                        style={{ backgroundColor: tool.color }}
+                                                    />
+                                                    <div>
+                                                        <div className="font-medium text-gray-900 text-sm">
+                                                            {tool.name}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">
+                                                            {tool.description}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
                         <Link href="/about-us" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                             About
                         </Link>
@@ -74,6 +152,32 @@ export default function Header() {
                         >
                             Home
                         </Link>
+                        
+                        {/* Mobile Tools Section */}
+                        <div className="py-2">
+                            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                PDF Tools
+                            </div>
+                            <div className="space-y-1 max-h-64 overflow-y-auto">
+                                {PDF_TOOLS.map((tool) => (
+                                    <Link
+                                        key={tool.id}
+                                        href={tool.path}
+                                        className="block px-3 py-2 rounded-md text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div 
+                                                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                                style={{ backgroundColor: tool.color }}
+                                            />
+                                            <span>{tool.name}</span>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                        
                         <Link
                             href="/about-us"
                             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"

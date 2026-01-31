@@ -34,7 +34,7 @@ export default function ContactUsPage() {
                         <div className="bg-blue-50 p-6 rounded-xl">
                             <h3 className="font-bold text-gray-900 mb-2">Email Support</h3>
                             <p className="text-gray-600 text-sm mb-2">For general inquiries and support:</p>
-                            <a href="mailto:support@quickpdftools.in" className="text-blue-600 font-medium hover:underline">support@quickpdftools.in</a>
+                            <a href="mailto:krishanmohankumar9311@gmail.com" className="text-blue-600 font-medium hover:underline break-all">krishanmohankumar9311@gmail.com</a>
                         </div>
 
                         <div className="bg-gray-50 p-6 rounded-xl">

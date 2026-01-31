@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import mammoth from "mammoth";
-
-// Import pdfkit using require for CommonJS compatibility
-const PDFKit = require("pdfkit");
 
 export async function POST(request: NextRequest) {
     try {
@@ -17,13 +14,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate file type
+        // Validate file type - check both MIME type and extension
+        const fileName = file.name.toLowerCase();
         const allowedTypes = [
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
             'application/msword', // .doc
         ];
+        const hasValidExtension = fileName.endsWith('.doc') || fileName.endsWith('.docx');
+        const hasValidMimeType = allowedTypes.includes(file.type);
 
-        if (!allowedTypes.includes(file.type)) {
+        if (!hasValidExtension && !hasValidMimeType) {
             return NextResponse.json(
                 { error: "Please upload a valid Word document (.doc or .docx)" },
                 { status: 400 }
@@ -34,31 +34,141 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Extract text from Word document using mammoth
-        const result = await mammoth.extractRawText({ buffer });
-        const text = result.value;
+        // Extract text from Word document
+        const textResult = await mammoth.extractRawText({ buffer });
+        const text = textResult.value;
 
         if (!text || text.trim().length === 0) {
             throw new Error("No text content found in the Word document");
         }
 
-        // Create PDF using PDFKit
-        const pdfBuffer = await createPDFFromText(text, getFileNameWithoutExtension(file.name));
+        // Create PDF using pdf-lib (no external font dependencies)
+        const pdfDoc = await PDFDocument.create();
+
+        // Embed standard fonts (these are built-in, no file system access needed)
+        const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        const pageWidth = 595.28; // A4 width in points
+        const pageHeight = 841.89; // A4 height in points
+        const margin = 72; // 1 inch margin
+        const fontSize = 12;
+        const lineHeight = fontSize * 1.5;
+        const maxWidth = pageWidth - (margin * 2);
+
+        let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        let yPosition = pageHeight - margin;
+
+        // Add title
+        const title = getFileNameWithoutExtension(file.name);
+        currentPage.drawText(title, {
+            x: margin,
+            y: yPosition,
+            size: 18,
+            font: helveticaBold,
+            color: rgb(0, 0, 0),
+        });
+        yPosition -= 30;
+
+        // Add metadata line
+        const metadata = `Converted from Word Document`;
+        currentPage.drawText(metadata, {
+            x: margin,
+            y: yPosition,
+            size: 10,
+            font: helveticaFont,
+            color: rgb(0.4, 0.4, 0.4),
+        });
+        yPosition -= 30;
+
+        // Process text content
+        const paragraphs = text.split('\n').filter(p => p.trim());
+
+        for (const paragraph of paragraphs) {
+            const trimmedParagraph = paragraph.trim();
+            if (!trimmedParagraph) continue;
+
+            // Word wrap the paragraph
+            const words = trimmedParagraph.split(' ');
+            let currentLine = '';
+
+            for (const word of words) {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+                const textWidth = helveticaFont.widthOfTextAtSize(testLine, fontSize);
+
+                if (textWidth > maxWidth && currentLine) {
+                    // Draw the current line
+                    if (yPosition < margin + 20) {
+                        // Add new page
+                        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+                        yPosition = pageHeight - margin;
+                    }
+
+                    currentPage.drawText(currentLine, {
+                        x: margin,
+                        y: yPosition,
+                        size: fontSize,
+                        font: helveticaFont,
+                        color: rgb(0, 0, 0),
+                    });
+                    yPosition -= lineHeight;
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+
+            // Draw the last line of the paragraph
+            if (currentLine) {
+                if (yPosition < margin + 20) {
+                    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
+                    yPosition = pageHeight - margin;
+                }
+
+                currentPage.drawText(currentLine, {
+                    x: margin,
+                    y: yPosition,
+                    size: fontSize,
+                    font: helveticaFont,
+                    color: rgb(0, 0, 0),
+                });
+                yPosition -= lineHeight;
+            }
+
+            // Add extra space between paragraphs
+            yPosition -= lineHeight * 0.5;
+        }
+
+        // Add page numbers
+        const pages = pdfDoc.getPages();
+        const totalPages = pages.length;
+
+        for (let i = 0; i < totalPages; i++) {
+            const page = pages[i];
+            const pageNumber = `Page ${i + 1} of ${totalPages}`;
+            const textWidth = helveticaFont.widthOfTextAtSize(pageNumber, 9);
+
+            page.drawText(pageNumber, {
+                x: (pageWidth - textWidth) / 2,
+                y: 30,
+                size: 9,
+                font: helveticaFont,
+                color: rgb(0.5, 0.5, 0.5),
+            });
+        }
+
+        // Save the PDF
+        const pdfBytes = await pdfDoc.save();
 
         // Validate the output
-        if (pdfBuffer.length < 1000) {
+        if (pdfBytes.length < 500) {
             throw new Error("Generated PDF is too small or invalid");
         }
 
-        // Verify PDF can be loaded back
-        try {
-            await PDFDocument.load(pdfBuffer);
-        } catch (validationError) {
-            throw new Error("Generated PDF is corrupted and cannot be validated");
-        }
+        console.log("Conversion successful! Document size:", pdfBytes.length, "bytes");
 
         // Return the PDF
-        const response = new NextResponse(Buffer.from(pdfBuffer), {
+        const response = new NextResponse(Buffer.from(pdfBytes), {
             status: 200,
             headers: {
                 "Content-Type": "application/pdf",
@@ -66,6 +176,7 @@ export async function POST(request: NextRequest) {
                 "X-Original-Format": file.type,
                 "X-Text-Length": text.length.toString(),
                 "X-Conversion-Type": "word-to-pdf",
+                "X-Total-Pages": totalPages.toString(),
             },
         });
 
@@ -81,93 +192,8 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Create PDF from text content using PDFKit
- */
-function createPDFFromText(text: string, title: string): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-        try {
-            const doc = new PDFKit({
-                size: 'A4',
-                margin: 50,
-                bufferPages: true,
-            });
-
-            const buffers: Buffer[] = [];
-
-            doc.on('data', (chunk: Buffer) => buffers.push(chunk));
-            doc.on('end', () => resolve(Buffer.concat(buffers)));
-            doc.on('error', reject);
-
-            // Add title
-            doc.fontSize(24).font('Helvetica-Bold').text(title, { align: 'center' });
-            doc.moveDown(2);
-
-            // Add metadata
-            doc.fontSize(12).font('Helvetica').text(`Converted from Word document`, { align: 'center' });
-            doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
-            doc.moveDown(2);
-
-            // Process text content
-            const paragraphs = text.split('\n\n').filter(p => p.trim());
-
-            for (const paragraph of paragraphs) {
-                const lines = paragraph.split('\n').filter(line => line.trim());
-
-                for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    if (!trimmedLine) continue;
-
-                    // Check if line looks like a heading (simple heuristic)
-                    const isHeading = trimmedLine.length < 100 &&
-                                    !trimmedLine.includes('.') &&
-                                    !trimmedLine.includes(',') &&
-                                    /^[A-Z\s]+$/.test(trimmedLine.toUpperCase());
-
-                    if (isHeading) {
-                        // Heading style
-                        doc.moveDown(1);
-                        doc.fontSize(16).font('Helvetica-Bold').text(trimmedLine);
-                        doc.fontSize(12).font('Helvetica');
-                        doc.moveDown(0.5);
-                    } else {
-                        // Regular paragraph
-                        doc.text(trimmedLine);
-                        doc.moveDown(0.5);
-                    }
-                }
-
-                doc.moveDown(1);
-            }
-
-            // Check if we need a new page
-            if (doc.y > 600) {
-                doc.addPage();
-            }
-
-            // Add footer
-            const totalPages = doc.bufferedPageRange().count;
-            for (let i = 0; i < totalPages; i++) {
-                doc.switchToPage(i);
-                doc.fontSize(8).text(
-                    `Page ${i + 1} of ${totalPages}`,
-                    50,
-                    doc.page.height - 50,
-                    { align: 'center' }
-                );
-            }
-
-            doc.end();
-
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
-
-/**
  * Get filename without extension
  */
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
-

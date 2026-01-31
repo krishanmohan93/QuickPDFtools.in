@@ -73,19 +73,58 @@ export default function ToolPage({
             clearInterval(progressInterval);
 
             if (!response.ok) {
-                throw new Error("Processing failed");
+                // Try to get error message from response
+                let errorMessage = "Processing failed";
+                try {
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.includes("application/json")) {
+                        const errorData = await response.json();
+                        errorMessage = errorData.error || errorMessage;
+                    } else {
+                        const errorText = await response.text();
+                        if (errorText) errorMessage = errorText;
+                    }
+                } catch (e) {
+                    // If we can't parse the error, use the default message
+                    console.error("Error parsing error response:", e);
+                }
+                throw new Error(errorMessage);
             }
 
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
 
+            // Try to get filename from Content-Disposition header
+            let filename = outputFileName;
+            const contentDisposition = response.headers.get("Content-Disposition");
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            // If no filename from header, generate from original file
+            if (!filename || filename === outputFileName) {
+                const originalFile = files[0];
+                if (originalFile) {
+                    const baseName = originalFile.name.replace(/\.[^/.]+$/, "");
+                    const extension = outputFileName.split('.').pop();
+                    filename = `${baseName}.${extension}`;
+                }
+            }
+
             setProgress(100);
             setStatus("success");
             setMessage("Processing complete! Your file is ready to download.");
             setDownloadUrl(url);
+
+            // Store filename in state for download
+            (window as any).__downloadFilename = filename;
         } catch (error) {
             setStatus("error");
-            setMessage("An error occurred while processing your file. Please try again.");
+            const errorMessage = error instanceof Error ? error.message : "An error occurred while processing your file. Please try again.";
+            setMessage(errorMessage);
             console.error(error);
         } finally {
             setProcessing(false);
@@ -96,10 +135,14 @@ export default function ToolPage({
         if (downloadUrl) {
             const link = document.createElement("a");
             link.href = downloadUrl;
-            link.download = outputFileName;
+            // Use stored filename or default
+            link.download = (window as any).__downloadFilename || outputFileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+
+            // Clean up
+            delete (window as any).__downloadFilename;
         }
     };
 

@@ -1,130 +1,171 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import { PDFDocument } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist";
 
-// Import pdf-parse with fallback for build compatibility
-let pdfParse: any;
-try {
-    pdfParse = require("pdf-parse");
-} catch (e) {
-    console.warn("pdf-parse not available");
-}
+// Set up PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 export async function POST(request: NextRequest) {
+    const startTime = Date.now();
+
     try {
         const formData = await request.formData();
-
-        // Try to get file with different possible keys
-        let file = formData.get("file0") as File;
-        if (!file) {
-            file = formData.get("file") as File;
-        }
-
-        const extractionMode = formData.get("extractionMode") as string || "tables"; // tables, text
+        const file = formData.get("file") as File;
 
         if (!file) {
             return NextResponse.json(
-                { error: "Please upload a PDF file" },
+                { error: "No file provided" },
                 { status: 400 }
             );
         }
 
-        // Load PDF for validation
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        const totalPages = pdfDoc.getPageCount();
-
-        // Extract text from PDF with better error handling
-        const pdfBuffer = Buffer.from(arrayBuffer);
-        let pdfData;
-        let textContent = "";
-
-        try {
-            if (pdfParse) {
-                pdfData = await pdfParse(pdfBuffer, {
-                    max: 0,
-                    normalizeWhitespace: true,
-                });
-                textContent = pdfData.text || "";
-            } else {
-                throw new Error("pdf-parse not available");
-            }
-        } catch (parseError) {
-            console.warn("PDF parsing warning:", parseError);
-            textContent = `PDF Content (${totalPages} pages)\n\nText extraction failed. This PDF may contain scanned images or complex layouts.`;
-            pdfData = {
-                text: textContent,
-                numpages: totalPages,
-            };
+        // Validate file type
+        if (file.type !== "application/pdf") {
+            return NextResponse.json(
+                { error: "Only PDF files are supported" },
+                { status: 400 }
+            );
         }
 
-        // Create workbook
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+            return NextResponse.json(
+                {
+                    error: `File size must be less than 20MB. Your file: ${(file.size / 1024 / 1024).toFixed(2)}MB`,
+                },
+                { status: 400 }
+            );
+        }
+
+        // Convert file to buffer
+        const pdfBuffer = Buffer.from(await file.arrayBuffer());
+
+        // Extract tables from PDF
+        const { tables, pagesProcessed } = await extractTablesFromPDF(pdfBuffer);
+
+        if (tables.length === 0) {
+            return NextResponse.json(
+                { error: "No tables found in PDF. Please try a different PDF with table data." },
+                { status: 400 }
+            );
+        }
+
+        // Create Excel workbook
         const workbook = XLSX.utils.book_new();
+        let totalRowsExtracted = 0;
 
-        if (extractionMode === "tables") {
-            // Try to extract tabular data
-            const tables = extractTablesFromText(textContent);
+        // Add data sheets
+        tables.forEach((table, index) => {
+            const worksheet = XLSX.utils.aoa_to_sheet(table.data);
 
-            if (tables.length > 0) {
-                // Create separate sheets for each table
-                tables.forEach((table, index) => {
-                    const worksheet = XLSX.utils.aoa_to_sheet(table);
-                    XLSX.utils.book_append_sheet(workbook, worksheet, `Table_${index + 1}`);
-                });
-            } else {
-                // Fallback to text extraction
-                const textData = convertTextToRows(textContent);
-                const worksheet = XLSX.utils.aoa_to_sheet(textData);
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Extracted_Text");
+            // Auto-adjust column widths
+            const colWidths: any[] = [];
+            if (table.data.length > 0) {
+                const maxColCount = Math.max(...table.data.map(row => row.length));
+                for (let col = 0; col < maxColCount; col++) {
+                    let maxWidth = 12;
+                    for (let row = 0; row < table.data.length; row++) {
+                        const cell = table.data[row][col];
+                        if (cell) {
+                            const cellStr = cell.toString();
+                            maxWidth = Math.max(maxWidth, cellStr.length);
+                        }
+                    }
+                    colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
+                }
             }
-        } else {
-            // Simple text extraction
-            const textData = convertTextToRows(textContent);
-            const worksheet = XLSX.utils.aoa_to_sheet(textData);
-            XLSX.utils.book_append_sheet(workbook, worksheet, "PDF_Content");
-        }
+            worksheet["!cols"] = colWidths;
 
-        // Add metadata sheet
-        const metadata = [
-            ["Property", "Value"],
-            ["Original File", file.name],
-            ["Total Pages", totalPages],
-            ["Text Pages", pdfData.numpages],
-            ["Extraction Mode", extractionMode],
-            ["Conversion Date", new Date().toISOString()],
-        ];
-        const metadataSheet = XLSX.utils.aoa_to_sheet(metadata);
-        XLSX.utils.book_append_sheet(workbook, metadataSheet, "Metadata");
+            const sheetName = `Table_${index + 1}`;
+            XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+            totalRowsExtracted += table.data.length;
+        });
 
-        // Generate Excel file
+        // Generate Excel buffer
         const excelBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
 
-        // Validate the output
-        if (excelBuffer.length < 1000) {
-            throw new Error("Generated Excel file is too small or invalid");
-        }
+        const processingTime = (Date.now() - startTime) / 1000;
 
-        // Return the Excel file
+        // Return the Excel file with metadata headers
         const response = new NextResponse(Buffer.from(excelBuffer), {
             status: 200,
             headers: {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}.xlsx`,
-                "X-Original-Pages": totalPages.toString(),
-                "X-Text-Pages": pdfData.numpages.toString(),
-                "X-Extraction-Mode": extractionMode,
+                "Content-Disposition": `attachment; filename="QuickPDFTools-${Date.now()}.xlsx"`,
+                "x-tables-found": tables.length.toString(),
+                "x-rows-extracted": totalRowsExtracted.toString(),
+                "x-processing-time": processingTime.toString(),
+                "x-pages-processed": pagesProcessed.toString(),
+                "Cache-Control": "no-cache, no-store, must-revalidate",
             },
         });
 
         return response;
-
     } catch (error) {
         console.error("Error converting PDF to Excel:", error);
         return NextResponse.json(
-            { error: `Failed to convert PDF to Excel: ${error instanceof Error ? error.message : 'Unknown error'}` },
+            {
+                error: `Failed to convert PDF to Excel: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
             { status: 500 }
         );
     }
+}
+
+/**
+ * Extract tables from PDF using PDF.js
+ */
+async function extractTablesFromPDF(pdfBuffer: Buffer): Promise<{
+    tables: Array<{ data: string[][] }>;
+    pagesProcessed: number;
+}> {
+    const data = new Uint8Array(pdfBuffer);
+    const pdf = await pdfjsLib.getDocument(data).promise;
+    const tables: Array<{ data: string[][] }> = [];
+    let pagesProcessed = 0;
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+
+        // Group text by y-position to detect rows
+        const rowMap = new Map<number, Array<{ text: string; x: number }>>();
+
+        for (const item of textContent.items) {
+            if ("str" in item && item.str.trim()) {
+                const textItem = item as any;
+                const y = Math.round(textItem.y || textItem.transform?.[5] || 0);
+                if (!rowMap.has(y)) {
+                    rowMap.set(y, []);
+                }
+                rowMap.get(y)!.push({
+                    text: item.str,
+                    x: textItem.x || textItem.transform?.[4] || 0,
+                });
+            }
+        }
+
+        // Convert to sorted rows
+        const sortedRows = Array.from(rowMap.entries())
+            .sort((a, b) => b[0] - a[0])
+            .map(([_, items]) => {
+                return items
+                    .sort((a, b) => a.x - b.x)
+                    .map((item) => item.text);
+            });
+
+        if (sortedRows.length > 0) {
+            tables.push({
+                data: sortedRows,
+            });
+        }
+
+        pagesProcessed++;
+    }
+
+    return { tables, pagesProcessed };
 }
 
 /**
@@ -208,4 +249,5 @@ function convertTextToRows(text: string): string[][] {
 function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
+
 
