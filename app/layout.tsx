@@ -42,11 +42,20 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} - Professional PDF Tools Online`,
     description: SITE_DESCRIPTION,
     siteName: SITE_NAME,
+    images: [
+      {
+        url: `${SITE_URL}/logo.png`,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} Logo`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE_NAME} - Professional PDF Tools Online`,
     description: SITE_DESCRIPTION,
+    images: [`${SITE_URL}/logo.png`],
   },
   verification: {
     google: "your-google-verification-code",

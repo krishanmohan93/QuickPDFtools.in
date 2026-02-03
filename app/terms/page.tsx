@@ -26,12 +26,12 @@ export default function TermsPage() {
                 {/* Introduction */}
                 <div className="prose prose-lg max-w-none">
                     <p className="text-gray-700 leading-relaxed mb-6">
-                        These Terms and Conditions govern your use of the website <strong>{SITE_URL}</strong>,
-                        operated by <strong>QuickPDFTools Digital Services, India</strong>.
+                        By using Quick PDF Tools, you agree to use our services responsibly and legally. Users are 
+                        responsible for the content they upload and process using our tools. We do not claim ownership 
+                        of uploaded files and do not permanently store documents.
                     </p>
                     <p className="text-gray-700 leading-relaxed mb-8">
-                        By accessing or using QuickPDFTools, you agree to be bound by these Terms. Your access to and use
-                        of the Service is conditioned on your acceptance of and compliance with these Terms.
+                        We reserve the right to modify or discontinue services at any time without prior notice.
                     </p>
 
                     {/* Section 1 */}

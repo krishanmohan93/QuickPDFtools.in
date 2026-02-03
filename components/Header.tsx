@@ -39,14 +39,13 @@ export default function Header() {
     return (
         <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
+                <div className="flex items-center justify-between h-20">
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 flex items-center justify-center">
+                        <div className="w-14 h-14 flex items-center justify-center">
                             <img
                                 src="/icon.png"
                                 alt={`${SITE_NAME} Logo`}
                                 className="w-full h-full object-contain"
-                                style={{ maxHeight: '48px' }}
                             />
                         </div>
                         <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
@@ -59,10 +58,10 @@ export default function Header() {
                         <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                             Home
                         </Link>
-                        
+
                         {/* Tools Dropdown */}
                         <div className="relative group">
-                            <button 
+                            <button
                                 className="text-gray-700 hover:text-blue-600 font-medium transition-colors flex items-center gap-1"
                                 onMouseEnter={handleToolsMouseEnter}
                                 onMouseLeave={handleToolsMouseLeave}
@@ -72,10 +71,10 @@ export default function Header() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </button>
-                            
+
                             {/* Dropdown Menu */}
                             {isToolsOpen && (
-                                <div 
+                                <div
                                     className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
                                     onMouseEnter={handleToolsMouseEnter}
                                     onMouseLeave={handleToolsMouseLeave}
@@ -88,7 +87,7 @@ export default function Header() {
                                                 className="block px-4 py-2 hover:bg-blue-50 transition-colors"
                                             >
                                                 <div className="flex items-start gap-3">
-                                                    <div 
+                                                    <div
                                                         className="w-2 h-2 rounded-full mt-2 flex-shrink-0"
                                                         style={{ backgroundColor: tool.color }}
                                                     />
@@ -107,9 +106,9 @@ export default function Header() {
                                 </div>
                             )}
                         </div>
-                        
+
                         <Link href="/about-us" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
-                            About
+                            About Us
                         </Link>
                         <Link href="/blog" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                             Blog
@@ -152,7 +151,7 @@ export default function Header() {
                         >
                             Home
                         </Link>
-                        
+
                         {/* Mobile Tools Section */}
                         <div className="py-2">
                             <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -167,7 +166,7 @@ export default function Header() {
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <div className="flex items-center gap-2">
-                                            <div 
+                                            <div
                                                 className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                                                 style={{ backgroundColor: tool.color }}
                                             />
@@ -177,13 +176,13 @@ export default function Header() {
                                 ))}
                             </div>
                         </div>
-                        
+
                         <Link
                             href="/about-us"
                             className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
                             onClick={() => setIsMenuOpen(false)}
                         >
-                            About
+                            About Us
                         </Link>
                         <Link
                             href="/blog"

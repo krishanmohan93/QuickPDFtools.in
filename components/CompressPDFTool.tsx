@@ -318,6 +318,34 @@ export default function CompressPDFTool() {
                         <li>5. Compressed file downloads automatically</li>
                     </ol>
                 </div>
+
+                {/* SEO Content Section */}
+                <div className="mt-12 bg-white rounded-2xl p-8 border-2 border-gray-200">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                        Compress PDF Online for Free
+                    </h2>
+                    <div className="prose max-w-none text-gray-700 space-y-4">
+                        <p>
+                            Compress PDF is an online tool that reduces the file size of PDF documents while maintaining 
+                            good quality. Large PDF files can be difficult to share through email or upload to websites. 
+                            This tool helps you make your files smaller and easier to manage.
+                        </p>
+                        
+                        <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+                            How to use Compress PDF:
+                        </h3>
+                        <ul className="list-disc pl-6 space-y-2">
+                            <li>Upload your PDF file using the upload button</li>
+                            <li>The tool automatically compresses the file</li>
+                            <li>Download the optimized PDF instantly</li>
+                        </ul>
+                        
+                        <p className="mt-4">
+                            This tool is useful for students submitting assignments, professionals sharing reports, and 
+                            anyone who wants faster PDF uploads.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -82,11 +82,20 @@ export function generateToolMetadata(toolId: string): Metadata {
             url: `${SITE_URL}/${toolId}`,
             siteName: SITE_NAME,
             type: "website",
+            images: [
+                {
+                    url: `${SITE_URL}/logo.png`,
+                    width: 1200,
+                    height: 630,
+                    alt: `${SITE_NAME} Logo`,
+                },
+            ],
         },
         twitter: {
             card: "summary_large_image",
             title,
             description,
+            images: [`${SITE_URL}/logo.png`],
         },
         alternates: {
             canonical: `${SITE_URL}/${toolId}`,
@@ -105,11 +114,20 @@ export function generateHomeMetadata(): Metadata {
             url: SITE_URL,
             siteName: SITE_NAME,
             type: "website",
+            images: [
+                {
+                    url: `${SITE_URL}/logo.png`,
+                    width: 1200,
+                    height: 630,
+                    alt: `${SITE_NAME} Logo`,
+                },
+            ],
         },
         twitter: {
             card: "summary_large_image",
             title: `${SITE_NAME} - Free PDF Tools Online | Edit, Convert, Merge PDFs`,
             description: "Professional PDF tools online for free. Edit PDFs with same font, convert PDF to Word/Excel/PPT, merge, split, compress PDFs.",
+            images: [`${SITE_URL}/logo.png`],
         },
         alternates: {
             canonical: SITE_URL,

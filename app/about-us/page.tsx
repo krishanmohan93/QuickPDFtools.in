@@ -11,76 +11,65 @@ export default function AboutUsPage() {
     return (
         <div className="bg-white min-h-screen py-12 md:py-20">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">About Us</h1>
+                <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">About Quick PDF Tools</h1>
 
-                <div className="prose prose-lg prose-blue text-gray-700 max-w-none">
-                    <p className="lead text-xl text-gray-500 mb-8">
-                        Welcome to {SITE_NAME}, your trusted partner for simple, secure, and efficient PDF management.
+                <div className="prose prose-lg prose-blue text-gray-700 max-w-none space-y-6">
+                    <p className="text-lg leading-relaxed">
+                        Quick PDF Tools was created with one simple goal: to make working with PDF documents easy, fast, and accessible for everyone. We understand that not everyone has access to expensive software or technical knowledge, yet many people need simple tools to manage their documents in daily life.
                     </p>
 
-                    <h3>Our Mission</h3>
-                    <p>
-                        In a digital-first world, documents are the currency of communication. Yet, working with the most common document format—PDF—has historically been difficult, requiring expensive software or complex installations.
+                    <p className="text-lg leading-relaxed">
+                        Our platform provides a collection of online PDF tools that help users compress, merge, split, and convert PDF files directly from their browser. Whether you are a student submitting assignments, a professional sharing reports, or a developer managing documentation, Quick PDF Tools is designed to support your workflow without unnecessary complexity.
                     </p>
-                    <p>
-                        Our mission at {SITE_NAME} is to democratize PDF tools. We believe that everyone, from students to enterprise executives, should have access to professional-grade document manipulation tools without barriers. We strive to provide a platform that is:
+
+                    <p className="text-lg leading-relaxed">
+                        We focus on simplicity and usability. Every tool on our website is built to be straightforward, so users can complete their tasks in just a few clicks. There is no requirement to download software or create an account. This makes our platform convenient for quick and efficient document handling.
                     </p>
-                    <ul>
-                        <li><strong>Accessible:</strong> Free to use for everyone, everywhere.</li>
-                        <li><strong>Private:</strong> Respecting user data with ephemeral processing.</li>
-                        <li><strong>Efficient:</strong> Saving you time with fast, intuitive workflows.</li>
+
+                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Our Purpose</h2>
+                    <p className="text-lg leading-relaxed">
+                        The purpose of Quick PDF Tools is to provide reliable and practical document solutions for everyday use. We aim to reduce the time and effort people spend managing PDF files by offering tools that work directly online. Our services are designed to be helpful, lightweight, and accessible across all devices, including desktops, tablets, and mobile phones.
+                    </p>
+
+                    <p className="text-lg leading-relaxed">
+                        We continuously improve our tools based on user needs and feedback. Our goal is to create a platform that users can trust for their document-related tasks.
+                    </p>
+
+                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Privacy and User Safety</h2>
+                    <p className="text-lg leading-relaxed">
+                        User privacy is very important to us. Files uploaded to Quick PDF Tools are processed securely and are not stored permanently on our servers. Uploaded documents are automatically removed after processing to protect user data and confidentiality.
+                    </p>
+
+                    <p className="text-lg leading-relaxed">
+                        We do not analyze, share, or misuse user files. Our platform is designed to respect user privacy while providing reliable functionality.
+                    </p>
+
+                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Who Can Use Quick PDF Tools</h2>
+                    <p className="text-lg leading-relaxed">Quick PDF Tools is suitable for:</p>
+                    <ul className="list-disc pl-6 space-y-2">
+                        <li>Students working on assignments and projects</li>
+                        <li>Teachers and educators preparing documents</li>
+                        <li>Professionals handling reports and official files</li>
+                        <li>Developers and researchers working with technical documents</li>
+                        <li>Anyone who needs quick PDF solutions without complexity</li>
                     </ul>
 
-                    <h3>Our Technology</h3>
-                    <p>
-                        {SITE_NAME} is built on modern web technologies using a cloud-native architecture. This allows us to scale instantly to meet demand, ensuring that your file conversions happen in seconds, not minutes.
-                    </p>
-                    <p>
-                        We utilize state-of-the-art encryption standards to ensure that your data is safe from the moment it leaves your device until it is deleted from our servers. Our processing algorithms are constantly refined to ensure the highest fidelity in conversion quality—preserving your layouts, fonts, and images.
+                    <p className="text-lg leading-relaxed">
+                        Our tools are built for users from different backgrounds, regardless of technical experience.
                     </p>
 
-                    <h3>Who We Are</h3>
-                    <p>
-                        We are a team of passionate developers, designers, and product enthusiasts dedicated to solving productivity headaches. Started in 2024, {SITE_NAME} has grown from a simple file merger utility into a comprehensive suite of over 15 PDF tools.
+                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Our Commitment</h2>
+                    <p className="text-lg leading-relaxed">
+                        We are committed to maintaining a clean, easy-to-use, and informative website. Our content is written to help users understand what each tool does and how to use it effectively. We avoid misleading claims and focus on transparency and usefulness.
                     </p>
 
-                    <h3>Why Choose Us?</h3>
-                    <p>
-                        Unlike many other online tools, we prioritize <strong>User Experience</strong> and <strong>Privacy</strong> above all else. We don't clutter our interface with intrusive ads that break functionalities, and we definitely don't sell your data. We are building the tool we wanted to use ourselves.
+                    <p className="text-lg leading-relaxed">
+                        Quick PDF Tools is continuously evolving, and we plan to add more features and improvements to better serve our users in the future.
                     </p>
 
-                    <h3>Our Core Values</h3>
-                    <p>At QuickPDFTools, our culture is defined by a set of core values that guide every decision we make:</p>
-                    <ul>
-                        <li><strong>User-Centric Design:</strong> We believe that powerful tools don't have to be complicated. Every feature is designed with the user's journey in mind, ensuring clarity and ease of use.</li>
-                        <li><strong>Transparency:</strong> We are open about how we handle your data. Our privacy policies are written in plain English, not legalese, because trust is earned through honesty.</li>
-                        <li><strong>Continuous Innovation:</strong> The digital landscape is always changing. We consistently update our algorithms and infrastructure to support the latest PDF standards and browser technologies.</li>
-                        <li><strong>Accessibility:</strong> We strive to make our tools accessible to users with disabilities, adhering to WCAG guidelines wherever possible.</li>
-                    </ul>
-
-                    <h3>Sustainability Commitment</h3>
-                    <p>
-                        Digital sustainability is about minimizing the carbon footprint of our internet usage. By optimizing our compression algorithms and using efficient serverless architecture, we reduce the computational power required for each file conversion. This not only makes our tools faster but also greener. We are committed to hosting our services on carbon-neutral cloud providers.
-                    </p>
-
-                    <h3>Global Reach</h3>
-                    <p>
-                        Since our launch, we have served users from over 150 countries. Whether you are a student in Mumbai, a designer in New York, or a business owner in London, QuickPDFTools provides the same high-quality experience. We are constantly working on expanding our language support to make our tools truly universal.
-                    </p>
-
-                    <h3>Data Privacy & Security</h3>
-                    <p>
-                        We understand that trust is the foundation of our service. Our security infrastructure includes:
-                    </p>
-                    <ul>
-                        <li><strong>End-to-End Encryption:</strong> All file transfers are protected by SSL/TLS encryption.</li>
-                        <li><strong>No Permanent Storage:</strong> We employ automated scripts to wipe your files from our servers after 60 minutes. We do not keep backups of user content.</li>
-                        <li><strong>GDPR & CCPA Compliance:</strong> We fully adhere to international data protection regulations, giving you control over your digital footprint.</li>
-                    </ul>
-
-                    <h3>Contact Us</h3>
-                    <p>
-                        We are always looking to improve. If you have feedback, feature requests, or just want to say hello, please reach out to us via our <a href="/contact-us">Contact Page</a>.
+                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Contact and Feedback</h2>
+                    <p className="text-lg leading-relaxed">
+                        We value feedback from our users. Suggestions and improvement ideas help us grow and improve our platform. If you have any questions or feedback, you can reach us through our <a href="/contact-us" className="text-blue-600 hover:underline">Contact page</a>.
                     </p>
                 </div>
             </div>

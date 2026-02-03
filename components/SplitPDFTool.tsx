@@ -383,6 +383,32 @@ export default function SplitPDFTool() {
                         <li>5. Files will download automatically</li>
                     </ol>
                 </div>
+
+                {/* SEO Content Section */}
+                <div className="mt-12 bg-white rounded-2xl p-8 border-2 border-gray-200">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                        Split PDF Pages Online
+                    </h2>
+                    <div className="prose max-w-none text-gray-700 space-y-4">
+                        <p>
+                            Split PDF helps you extract specific pages from a PDF document or divide a large PDF into 
+                            smaller files. This tool is useful when you need only selected pages instead of the entire document.
+                        </p>
+                        
+                        <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+                            How to use Split PDF:
+                        </h3>
+                        <ul className="list-disc pl-6 space-y-2">
+                            <li>Upload your PDF file</li>
+                            <li>Select the pages you want to extract</li>
+                            <li>Download the new PDF file</li>
+                        </ul>
+                        
+                        <p className="mt-4">
+                            This tool saves time and keeps your documents organized.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

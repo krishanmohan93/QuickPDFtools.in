@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument as PDFLibDocument, rgb, StandardFonts } from "pdf-lib";
 import * as XLSX from "xlsx";
-
-// Import pdfkit using require for CommonJS compatibility
-const PDFKit = require("pdfkit");
 
 export async function POST(request: NextRequest) {
     try {
@@ -53,7 +50,7 @@ export async function POST(request: NextRequest) {
 
         // Verify PDF can be loaded back
         try {
-            await PDFDocument.load(pdfBuffer);
+            await PDFLibDocument.load(pdfBuffer);
         } catch (validationError) {
             throw new Error("Generated PDF is corrupted and cannot be validated");
         }
@@ -82,118 +79,140 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Create PDF from Excel workbook using PDFKit
+ * Create PDF from Excel workbook using pdf-lib
  */
-function createPDFFromExcel(workbook: XLSX.WorkBook, title: string): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-        try {
-            const doc = new PDFKit({
-                size: 'A4',
-                margin: 50,
-                bufferPages: true,
-            });
+async function createPDFFromExcel(workbook: XLSX.WorkBook, title: string): Promise<Buffer> {
+    const pdfDoc = await PDFLibDocument.create();
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-            const buffers: Buffer[] = [];
+    const pageWidth = 595; // A4 width
+    const pageHeight = 842; // A4 height
+    const margin = 50;
+    const contentWidth = pageWidth - 2 * margin;
 
-            doc.on('data', (chunk: Buffer) => buffers.push(chunk));
-            doc.on('end', () => resolve(Buffer.concat(buffers)));
-            doc.on('error', reject);
+    // Start first page
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let yPosition = pageHeight - margin;
 
-            // Add title
-            doc.fontSize(24).font('Helvetica-Bold').text(title, { align: 'center' });
-            doc.moveDown(2);
+    // Process each worksheet
+    for (let sheetIndex = 0; sheetIndex < workbook.SheetNames.length; sheetIndex++) {
+        const sheetName = workbook.SheetNames[sheetIndex];
+        const worksheet = workbook.Sheets[sheetName];
 
-            // Add metadata
-            doc.fontSize(12).font('Helvetica').text(`Converted from Excel spreadsheet`, { align: 'center' });
-            doc.text(`Sheets: ${workbook.SheetNames.join(', ')}`, { align: 'center' });
-            doc.text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
-            doc.moveDown(2);
-
-            // Process each worksheet
-            for (let sheetIndex = 0; sheetIndex < workbook.SheetNames.length; sheetIndex++) {
-                const sheetName = workbook.SheetNames[sheetIndex];
-                const worksheet = workbook.Sheets[sheetName];
-
-                // Add sheet title
-                if (sheetIndex > 0) {
-                    doc.addPage();
-                }
-
-                doc.fontSize(18).font('Helvetica-Bold').text(`Sheet: ${sheetName}`, { underline: true });
-                doc.moveDown(1);
-
-                // Convert sheet to JSON
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-                    header: 1,
-                    defval: '',
-                    blankrows: false
-                }) as any[][];
-
-                if (jsonData.length === 0) {
-                    doc.fontSize(12).font('Helvetica').text('(Empty sheet)');
-                    continue;
-                }
-
-                // Calculate column widths
-                const maxCols = Math.max(...jsonData.map(row => row.length));
-                const colWidth = Math.max(80, (doc.page.width - 100) / maxCols);
-
-                // Create table header
-                doc.fontSize(10).font('Helvetica-Bold');
-                const headerRow = jsonData[0] || [];
-                for (let col = 0; col < maxCols; col++) {
-                    const cellText = (headerRow[col] || `Column ${col + 1}`).toString();
-                    const x = 50 + (col * colWidth);
-                    doc.text(cellText.substring(0, 15), x, doc.y, { width: colWidth - 5 });
-                }
-                doc.moveDown(0.8);
-
-                // Draw header separator line
-                doc.moveTo(50, doc.y).lineTo(doc.page.width - 50, doc.y).stroke();
-                doc.moveDown(0.5);
-
-                // Add data rows
-                doc.fontSize(9).font('Helvetica');
-                for (let row = 1; row < jsonData.length; row++) {
-                    const dataRow = jsonData[row];
-
-                    // Check if we need a new page
-                    if (doc.y > doc.page.height - 100) {
-                        doc.addPage();
-                        doc.fontSize(10).font('Helvetica-Bold').text(`Sheet: ${sheetName} (continued)`, { underline: true });
-                        doc.moveDown(1);
-                        doc.fontSize(9).font('Helvetica');
-                    }
-
-                    for (let col = 0; col < maxCols; col++) {
-                        const cellText = (dataRow[col] || '').toString();
-                        const x = 50 + (col * colWidth);
-                        doc.text(cellText.substring(0, 20), x, doc.y, { width: colWidth - 5 });
-                    }
-                    doc.moveDown(0.7);
-                }
-
-                doc.moveDown(2);
-            }
-
-            // Add footer with page numbers
-            const totalPages = doc.bufferedPageRange().count;
-            for (let i = 0; i < totalPages; i++) {
-                doc.switchToPage(i);
-                doc.fontSize(8).text(
-                    `Page ${i + 1} of ${totalPages}`,
-                    50,
-                    doc.page.height - 50,
-                    { align: 'center' }
-                );
-            }
-
-            doc.end();
-
-        } catch (error) {
-            reject(error);
+        // Add new page for each sheet (except first)
+        if (sheetIndex > 0) {
+            page = pdfDoc.addPage([pageWidth, pageHeight]);
+            yPosition = pageHeight - margin;
         }
+
+        // Sheet title
+        page.drawText(`${sheetName}`, {
+            x: margin,
+            y: yPosition,
+            size: 16,
+            font: helveticaBold,
+            color: rgb(0.1, 0.1, 0.1)
+        });
+        yPosition -= 35;
+
+        // Convert sheet to JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+            defval: '',
+            blankrows: false
+        }) as any[][];
+
+        if (jsonData.length === 0) {
+            page.drawText('(Empty sheet)', {
+                x: margin,
+                y: yPosition,
+                size: 12,
+                font: helvetica,
+                color: rgb(0.5, 0.5, 0.5)
+            });
+            yPosition -= 40;
+            continue;
+        }
+
+        // Calculate column widths
+        const maxCols = Math.max(...jsonData.map(row => row.length));
+        const colWidth = Math.min(80, contentWidth / maxCols);
+
+        // Draw table
+        const fontSize = 8;
+        const lineHeight = 16;
+
+        for (let rowIndex = 0; rowIndex < jsonData.length; rowIndex++) {
+            const row = jsonData[rowIndex];
+
+            // Check if we need a new page
+            if (yPosition < margin + 50) {
+                page = pdfDoc.addPage([pageWidth, pageHeight]);
+                yPosition = pageHeight - margin;
+
+                // Add continuation header
+                page.drawText(`${sheetName} (continued)`, {
+                    x: margin,
+                    y: yPosition,
+                    size: 14,
+                    font: helveticaBold,
+                    color: rgb(0.1, 0.1, 0.1)
+                });
+                yPosition -= 30;
+            }
+
+            // Draw row - each cell in its own column
+            for (let colIndex = 0; colIndex < maxCols; colIndex++) {
+                const cellValue = row[colIndex] !== undefined ? String(row[colIndex]) : '';
+                // Truncate based on column width
+                const maxChars = Math.floor(colWidth / 4);
+                const truncated = cellValue.length > maxChars ? cellValue.substring(0, maxChars - 3) + '...' : cellValue;
+
+                const x = margin + (colIndex * colWidth);
+                const font = rowIndex === 0 ? helveticaBold : helvetica;
+
+                page.drawText(truncated, {
+                    x: x,
+                    y: yPosition,
+                    size: fontSize,
+                    font: font,
+                    color: rgb(0.1, 0.1, 0.1),
+                    maxWidth: colWidth - 2
+                });
+            }
+
+            yPosition -= lineHeight;
+
+            // Draw separator line after header
+            if (rowIndex === 0) {
+                page.drawLine({
+                    start: { x: margin, y: yPosition + 5 },
+                    end: { x: pageWidth - margin, y: yPosition + 5 },
+                    thickness: 1,
+                    color: rgb(0.8, 0.8, 0.8)
+                });
+                yPosition -= 5;
+            }
+        }
+
+        yPosition -= 30;
+    }
+
+    // Add page numbers
+    const pages = pdfDoc.getPages();
+    pages.forEach((p, index) => {
+        p.drawText(`Page ${index + 1} of ${pages.length}`, {
+            x: pageWidth / 2 - 30,
+            y: 30,
+            size: 8,
+            font: helvetica,
+            color: rgb(0.5, 0.5, 0.5)
+        });
     });
+
+    const pdfBytes = await pdfDoc.save();
+    return Buffer.from(pdfBytes);
 }
 
 /**

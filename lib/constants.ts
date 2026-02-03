@@ -171,4 +171,12 @@ export const PDF_TOOLS = [
         path: "/edit-pdf",
         color: "#10B981",
     },
+    {
+        id: "python-jupyter-to-pdf",
+        name: "Python & Jupyter to PDF",
+        description: "Convert Python and Jupyter Notebook files to PDF",
+        icon: "convert",
+        path: "/convert-python-jupyter-to-pdf",
+        color: "#8B5CF6",
+    },
 ];
