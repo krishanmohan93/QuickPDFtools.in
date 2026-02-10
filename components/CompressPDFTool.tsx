@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PDFDocument } from "pdf-lib";
+import DragDropUpload from "./DragDropUpload";
 
 type CompressionLevel = "low" | "medium" | "high";
 
@@ -14,8 +14,8 @@ export default function CompressPDFTool() {
     const [compressedSize, setCompressedSize] = useState(0);
     const [compressionRatio, setCompressionRatio] = useState(0);
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
+    const handleFileSelect = (selectedFiles: File[]) => {
+        const selectedFile = selectedFiles[0];
         if (!selectedFile) return;
 
         setFile(selectedFile);
@@ -31,54 +31,38 @@ export default function CompressPDFTool() {
         setProgress(0);
 
         try {
-            // Load the PDF
             setProgress(20);
-            const arrayBuffer = await file.arrayBuffer();
-            const pdfDoc = await PDFDocument.load(arrayBuffer);
+
+            // Create form data
+            const formData = new FormData();
+            formData.append('file0', file);
+            formData.append('compressionLevel', compressionLevel);
 
             setProgress(40);
 
-            // Get compression settings based on level
-            const compressionSettings = {
-                low: { imageQuality: 0.9, removeMetadata: false },
-                medium: { imageQuality: 0.7, removeMetadata: true },
-                high: { imageQuality: 0.5, removeMetadata: true }
-            };
-
-            const settings = compressionSettings[compressionLevel];
-
-            // Remove metadata if specified
-            if (settings.removeMetadata) {
-                pdfDoc.setTitle('');
-                pdfDoc.setAuthor('');
-                pdfDoc.setSubject('');
-                pdfDoc.setKeywords([]);
-                pdfDoc.setProducer('');
-                pdfDoc.setCreator('');
-            }
+            // Call API
+            const response = await fetch('/api/compress-pdf', {
+                method: 'POST',
+                body: formData,
+            });
 
             setProgress(60);
 
-            // Save with compression
-            // Note: pdf-lib has limited compression capabilities
-            // For production, you'd want to use a backend service
-            const pdfBytes = await pdfDoc.save({
-                useObjectStreams: true,
-                addDefaultPage: false,
-            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Compression failed');
+            }
 
-            setProgress(80);
-
-            // Calculate compression ratio
-            const compressed = pdfBytes.length;
+            // Get compressed PDF
+            const blob = await response.blob();
+            const compressed = blob.size;
             const ratio = ((originalSize - compressed) / originalSize * 100);
             setCompressedSize(compressed);
             setCompressionRatio(ratio);
 
-            setProgress(90);
+            setProgress(80);
 
             // Download the compressed PDF
-            const blob = new Blob([pdfBytes], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
@@ -126,23 +110,17 @@ export default function CompressPDFTool() {
                 {/* Upload Area */}
                 {!file && (
                     <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-                        <label className="block">
-                            <div className="border-4 border-dashed border-orange-300 rounded-xl p-12 text-center hover:border-orange-500 hover:bg-orange-50 transition-all cursor-pointer">
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={handleFileSelect}
-                                    className="hidden"
-                                />
-                                <div className="text-6xl mb-4">📄</div>
-                                <div className="text-xl font-semibold text-gray-700 mb-2">
-                                    Click to select a PDF file
-                                </div>
-                                <div className="text-gray-500">
-                                    or drag and drop here
-                                </div>
-                            </div>
-                        </label>
+                        <DragDropUpload
+                            onFileSelect={handleFileSelect}
+                            accept=".pdf"
+                            multiple={false}
+                            maxSize={50}
+                            icon="📄"
+                            title="Click to select a PDF file"
+                            subtitle="or drag and drop here"
+                            borderColor="border-orange-300"
+                            hoverColor="border-orange-500 bg-orange-50"
+                        />
                     </div>
                 )}
 
@@ -184,8 +162,8 @@ export default function CompressPDFTool() {
                                     onClick={() => setCompressionLevel("low")}
                                     disabled={isProcessing}
                                     className={`p-6 rounded-xl border-2 transition-all ${compressionLevel === "low"
-                                            ? "border-orange-500 bg-orange-50"
-                                            : "border-gray-200 hover:border-orange-300"
+                                        ? "border-orange-500 bg-orange-50"
+                                        : "border-gray-200 hover:border-orange-300"
                                         } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                     <div className="text-3xl mb-2">🟢</div>
@@ -197,8 +175,8 @@ export default function CompressPDFTool() {
                                     onClick={() => setCompressionLevel("medium")}
                                     disabled={isProcessing}
                                     className={`p-6 rounded-xl border-2 transition-all ${compressionLevel === "medium"
-                                            ? "border-orange-500 bg-orange-50"
-                                            : "border-gray-200 hover:border-orange-300"
+                                        ? "border-orange-500 bg-orange-50"
+                                        : "border-gray-200 hover:border-orange-300"
                                         } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                     <div className="text-3xl mb-2">🟡</div>
@@ -210,8 +188,8 @@ export default function CompressPDFTool() {
                                     onClick={() => setCompressionLevel("high")}
                                     disabled={isProcessing}
                                     className={`p-6 rounded-xl border-2 transition-all ${compressionLevel === "high"
-                                            ? "border-orange-500 bg-orange-50"
-                                            : "border-gray-200 hover:border-orange-300"
+                                        ? "border-orange-500 bg-orange-50"
+                                        : "border-gray-200 hover:border-orange-300"
                                         } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                     <div className="text-3xl mb-2">🔴</div>
@@ -326,11 +304,11 @@ export default function CompressPDFTool() {
                     </h2>
                     <div className="prose max-w-none text-gray-700 space-y-4">
                         <p>
-                            Compress PDF is an online tool that reduces the file size of PDF documents while maintaining 
-                            good quality. Large PDF files can be difficult to share through email or upload to websites. 
+                            Compress PDF is an online tool that reduces the file size of PDF documents while maintaining
+                            good quality. Large PDF files can be difficult to share through email or upload to websites.
                             This tool helps you make your files smaller and easier to manage.
                         </p>
-                        
+
                         <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
                             How to use Compress PDF:
                         </h3>
@@ -339,9 +317,9 @@ export default function CompressPDFTool() {
                             <li>The tool automatically compresses the file</li>
                             <li>Download the optimized PDF instantly</li>
                         </ul>
-                        
+
                         <p className="mt-4">
-                            This tool is useful for students submitting assignments, professionals sharing reports, and 
+                            This tool is useful for students submitting assignments, professionals sharing reports, and
                             anyone who wants faster PDF uploads.
                         </p>
                     </div>

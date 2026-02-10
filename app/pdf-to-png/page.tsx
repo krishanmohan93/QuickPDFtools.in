@@ -1,25 +1,12 @@
+import PDFToImageTool from "@/components/PDFToImageTool";
 import { Metadata } from "next";
-import ToolPage from "@/components/ToolPage";
-import { generateToolMetadata } from "@/lib/metadata";
-import { ALLOWED_FILE_TYPES } from "@/lib/constants";
 
-export const metadata: Metadata = generateToolMetadata("pdf-to-png");
+export const metadata: Metadata = {
+    title: "PDF to PNG - Convert PDF Pages to PNG Images | PDF Master Tools",
+    description: "Convert PDF pages to high-quality PNG images online. Free PDF to PNG converter with adjustable resolution settings. Download each page as a separate PNG file.",
+    keywords: ["pdf to png", "convert pdf to png", "pdf to image", "pdf converter", "png converter"],
+};
 
-export default function PDFtoPNGPage() {
-    return (
-        <ToolPage
-            toolId="pdf-to-png"
-            toolName="PDF to PNG"
-            toolDescription="Convert PDF pages to PNG images"
-            acceptedFileTypes={{ pdf: ALLOWED_FILE_TYPES.pdf }}
-            apiEndpoint="/api/pdf-to-png"
-            outputFileName="page-1.png"
-            instructions={[
-                "Upload your PDF file",
-                "First page will be converted to PNG",
-                "Click 'Process File' to convert",
-                "Download your PNG image",
-            ]}
-        />
-    );
+export default function PDFToPNGPage() {
+    return <PDFToImageTool format="png" />;
 }

@@ -24,7 +24,7 @@ export default function ContactUsPage() {
                 <div className="text-center mb-12">
                     <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">Contact Quick PDF Tools</h1>
                     <p className="text-xl text-gray-600">
-                        If you have any questions, suggestions, or feedback, feel free to contact us. 
+                        If you have any questions, suggestions, or feedback, feel free to contact us.
                         We value user feedback and aim to improve our services continuously.
                     </p>
                 </div>
@@ -36,13 +36,6 @@ export default function ContactUsPage() {
                             <h3 className="font-bold text-gray-900 mb-2">📧 Email</h3>
                             <a href="mailto:krishanmohankumar9311@gmail.com" className="text-blue-600 font-medium hover:underline break-all">
                                 krishanmohankumar9311@gmail.com
-                            </a>
-                        </div>
-
-                        <div className="bg-gray-50 p-6 rounded-xl">
-                            <h3 className="font-bold text-gray-900 mb-2">🌐 Website</h3>
-                            <a href="https://quick-pdf-tools.com" className="text-blue-600 font-medium hover:underline">
-                                Quick PDF Tools
                             </a>
                         </div>
 

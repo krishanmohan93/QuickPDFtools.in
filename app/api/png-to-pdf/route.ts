@@ -20,6 +20,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Get page size preference
+        const pageSizeMode = formData.get("pageSize") as string || "fit"; // "fit", "a4", "letter"
+
+        // Define standard page sizes (in points: 1 inch = 72 points)
+        const pageSizes: Record<string, [number, number]> = {
+            a4: [595.28, 841.89],      // A4: 210mm x 297mm
+            letter: [612, 792],         // Letter: 8.5" x 11"
+        };
+
         // Create a new PDF document
         const pdfDoc = await PDFDocument.create();
 
@@ -37,15 +46,61 @@ export async function POST(request: NextRequest) {
                 continue; // Skip unsupported formats
             }
 
-            // Create a page with the same dimensions as the image
-            const page = pdfDoc.addPage([image.width, image.height]);
+            // Determine page size
+            let pageWidth: number, pageHeight: number;
+
+            if (pageSizeMode === "fit") {
+                // Create page matching image size
+                pageWidth = image.width;
+                pageHeight = image.height;
+            } else {
+                // Use standard page size
+                const [stdWidth, stdHeight] = pageSizes[pageSizeMode] || pageSizes.a4;
+                pageWidth = stdWidth;
+                pageHeight = stdHeight;
+            }
+
+            const page = pdfDoc.addPage([pageWidth, pageHeight]);
+
+            // Calculate scaling to fit image on page while maintaining aspect ratio
+            const imageAspect = image.width / image.height;
+            const pageAspect = pageWidth / pageHeight;
+
+            let drawWidth: number, drawHeight: number, drawX: number, drawY: number;
+
+            if (pageSizeMode === "fit") {
+                // Exact fit
+                drawWidth = image.width;
+                drawHeight = image.height;
+                drawX = 0;
+                drawY = 0;
+            } else {
+                // Fit to page with margins
+                const margin = 36; // 0.5 inch margin
+                const availableWidth = pageWidth - (margin * 2);
+                const availableHeight = pageHeight - (margin * 2);
+
+                if (imageAspect > pageAspect) {
+                    // Image is wider - fit to width
+                    drawWidth = availableWidth;
+                    drawHeight = availableWidth / imageAspect;
+                } else {
+                    // Image is taller - fit to height
+                    drawHeight = availableHeight;
+                    drawWidth = availableHeight * imageAspect;
+                }
+
+                // Center the image
+                drawX = (pageWidth - drawWidth) / 2;
+                drawY = (pageHeight - drawHeight) / 2;
+            }
 
             // Draw the image on the page
             page.drawImage(image, {
-                x: 0,
-                y: 0,
-                width: image.width,
-                height: image.height,
+                x: drawX,
+                y: drawY,
+                width: drawWidth,
+                height: drawHeight,
             });
         }
 

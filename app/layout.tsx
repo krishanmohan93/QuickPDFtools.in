@@ -179,7 +179,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased bg-gray-50 text-gray-900" suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <Header />
         <main className="min-h-screen">{children}</main>
         <Footer />

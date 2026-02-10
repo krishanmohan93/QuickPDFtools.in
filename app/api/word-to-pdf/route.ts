@@ -34,9 +34,20 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        // Extract text from Word document
+        // Extract text and HTML from Word document
         const textResult = await mammoth.extractRawText({ buffer });
+        const htmlResult = await mammoth.convertToHtml({ buffer }, {
+            convertImage: mammoth.images.imgElement(async (image) => {
+                return image.read("base64").then((imageBuffer) => {
+                    return {
+                        src: `data:${image.contentType};base64,${imageBuffer}`
+                    };
+                });
+            })
+        });
+
         const text = textResult.value;
+        const html = htmlResult.value;
 
         if (!text || text.trim().length === 0) {
             throw new Error("No text content found in the Word document");

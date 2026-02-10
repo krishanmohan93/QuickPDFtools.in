@@ -37,32 +37,33 @@ export default function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+        <header className="sticky top-0 z-50 backdrop-blur-sm border-b shadow-sm" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-primary)' }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     <Link href="/" className="flex items-center gap-3 group">
                         <div className="w-14 h-14 flex items-center justify-center">
                             <img
-                                src="/icon.png"
+                                src="/logo.png"
                                 alt={`${SITE_NAME} Logo`}
                                 className="w-full h-full object-contain"
                             />
                         </div>
-                        <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                        <span className="text-xl font-bold" style={{ color: '#2563eb' }}>
                             {SITE_NAME}
                         </span>
                     </Link>
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-8">
-                        <Link href="/" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                        <Link href="/" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
                             Home
                         </Link>
 
                         {/* Tools Dropdown */}
                         <div className="relative group">
                             <button
-                                className="text-gray-700 hover:text-blue-600 font-medium transition-colors flex items-center gap-1"
+                                className="font-medium transition-colors flex items-center gap-1"
+                                style={{ color: 'var(--text-secondary)' }}
                                 onMouseEnter={handleToolsMouseEnter}
                                 onMouseLeave={handleToolsMouseLeave}
                             >
@@ -75,7 +76,8 @@ export default function Header() {
                             {/* Dropdown Menu */}
                             {isToolsOpen && (
                                 <div
-                                    className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                                    className="absolute top-full left-0 mt-2 w-72 rounded-lg shadow-xl border py-2 z-50"
+                                    style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-primary)' }}
                                     onMouseEnter={handleToolsMouseEnter}
                                     onMouseLeave={handleToolsMouseLeave}
                                 >
@@ -84,7 +86,10 @@ export default function Header() {
                                             <Link
                                                 key={tool.id}
                                                 href={tool.path}
-                                                className="block px-4 py-2 hover:bg-blue-50 transition-colors"
+                                                className="block px-4 py-2 transition-colors"
+                                                style={{ backgroundColor: 'transparent' }}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                             >
                                                 <div className="flex items-start gap-3">
                                                     <div
@@ -92,10 +97,10 @@ export default function Header() {
                                                         style={{ backgroundColor: tool.color }}
                                                     />
                                                     <div>
-                                                        <div className="font-medium text-gray-900 text-sm">
+                                                        <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
                                                             {tool.name}
                                                         </div>
-                                                        <div className="text-xs text-gray-500 mt-0.5">
+                                                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                                                             {tool.description}
                                                         </div>
                                                     </div>
@@ -107,32 +112,35 @@ export default function Header() {
                             )}
                         </div>
 
-                        <Link href="/about-us" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                        <Link href="/about-us" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
                             About Us
                         </Link>
-                        <Link href="/blog" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                        <Link href="/blog" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
                             Blog
                         </Link>
-                        <Link href="/faq" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                        <Link href="/faq" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
                             FAQ
                         </Link>
-                        <Link href="/contact-us" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                        <Link href="/contact-us" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
                             Contact
                         </Link>
                     </nav>
 
                     {/* Mobile Menu Button */}
                     <button
-                        className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="md:hidden p-2 rounded-lg transition-colors"
+                        style={{ color: 'var(--text-secondary)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         aria-label="Toggle menu"
                     >
                         {isMenuOpen ? (
-                            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         ) : (
-                            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         )}
@@ -142,11 +150,14 @@ export default function Header() {
 
             {/* Mobile Menu */}
             {isMenuOpen && (
-                <div className="md:hidden border-t border-gray-100 bg-white">
+                <div className="md:hidden border-t" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--card-bg)' }}>
                     <div className="px-4 pt-2 pb-4 space-y-1">
                         <Link
                             href="/"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 bg-transparent transition-colors"
+                            className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Home
@@ -154,7 +165,7 @@ export default function Header() {
 
                         {/* Mobile Tools Section */}
                         <div className="py-2">
-                            <div className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                            <div className="px-3 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
                                 PDF Tools
                             </div>
                             <div className="space-y-1 max-h-64 overflow-y-auto">
@@ -162,7 +173,10 @@ export default function Header() {
                                     <Link
                                         key={tool.id}
                                         href={tool.path}
-                                        className="block px-3 py-2 rounded-md text-sm text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                                        className="block px-3 py-2 rounded-md text-sm transition-colors"
+                                        style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
                                         <div className="flex items-center gap-2">
@@ -179,42 +193,60 @@ export default function Header() {
 
                         <Link
                             href="/about-us"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                            className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
                             About Us
                         </Link>
                         <Link
                             href="/blog"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                            className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Blog
                         </Link>
                         <Link
                             href="/faq"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                            className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
                             FAQ
                         </Link>
                         <Link
                             href="/contact-us"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                            className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Contact
                         </Link>
                         <Link
                             href="/privacy"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                            className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Privacy Policy
                         </Link>
                         <Link
                             href="/terms"
-                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                            className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
+                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Terms & Conditions

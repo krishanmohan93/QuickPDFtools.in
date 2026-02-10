@@ -56,6 +56,11 @@ export default async function BlogPostPage({ params }: Props) {
         notFound();
     }
 
+    // Get related posts from the same category
+    const relatedPosts = BLOG_POSTS
+        .filter(p => p.category === post.category && p.slug !== post.slug)
+        .slice(0, 3);
+
     // Article Schema (JSON-LD)
     const jsonLd = {
         "@context": "https://schema.org",
@@ -72,10 +77,11 @@ export default async function BlogPostPage({ params }: Props) {
             name: SITE_NAME,
             logo: {
                 "@type": "ImageObject",
-                url: `${SITE_URL}/icon.png`,
+                url: `${SITE_URL}/logo.png`,
             },
         },
         datePublished: post.date,
+        dateModified: post.date,
         mainEntityOfPage: {
             "@type": "WebPage",
             "@id": `${SITE_URL}/blog/${post.slug}`,
@@ -83,93 +89,251 @@ export default async function BlogPostPage({ params }: Props) {
     };
 
     return (
-        <div className="bg-gray-50 min-h-screen py-16">
+        <div className="bg-white min-h-screen">
             {/* JSON-LD Script */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
 
-            <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-8 md:p-12">
-                    {/* Breadcrumb */}
-                    <nav className="flex items-center text-sm text-gray-500 mb-8">
-                        <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
-                        <span className="mx-2">/</span>
-                        <Link href="/blog" className="hover:text-blue-600 transition-colors">Blog</Link>
-                        <span className="mx-2">/</span>
-                        <span className="text-gray-900 font-medium truncate">{post.title}</span>
-                    </nav>
+            {/* Article Container */}
+            <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                {/* Breadcrumb */}
+                <nav className="flex items-center text-sm text-gray-500 mb-8" aria-label="Breadcrumb">
+                    <Link href="/" className="hover:text-gray-700 transition-colors">Home</Link>
+                    <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <Link href="/blog" className="hover:text-gray-700 transition-colors">Blog</Link>
+                    <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-900">{post.category}</span>
+                </nav>
 
-                    {/* Header */}
-                    <header className="mb-10 text-center">
-                        <div className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide inline-block mb-4">
+                {/* Article Header */}
+                <header className="mb-12">
+                    {/* Category Badge */}
+                    <div className="mb-4">
+                        <Link
+                            href={`/blog?category=${post.category.toLowerCase()}`}
+                            className="inline-block bg-gray-700 text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors"
+                            style={{ color: '#ffffff' }}
+                        >
                             {post.category}
-                        </div>
-                        <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
-                            {post.title}
-                        </h1>
+                        </Link>
+                    </div>
 
-                        <div className="flex items-center justify-center space-x-4 text-gray-600 text-sm border-t border-b border-gray-100 py-4 max-w-lg mx-auto">
-                            <div className="flex items-center">
-                                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold mr-2">
-                                    {post.author.charAt(0)}
-                                </div>
-                                <span className="font-medium">{post.author}</span>
+                    {/* Title */}
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                        {post.title}
+                    </h1>
+
+                    {/* Meta Information */}
+                    <div className="flex flex-wrap items-center gap-4 text-gray-600 pb-6 border-b border-gray-200">
+                        <div className="flex items-center">
+                            <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center font-bold text-lg mr-3" style={{ color: '#ffffff' }}>
+                                {post.author.charAt(0)}
                             </div>
-                            <span>&bull;</span>
-                            <time dateTime={post.date}>{new Date(post.date).toLocaleDateString()}</time>
-                            <span>&bull;</span>
-                            <span>{post.readTime}</span>
+                            <div>
+                                <p className="font-semibold text-gray-900">{post.author}</p>
+                                <p className="text-sm text-gray-500">PDF Tools Specialist</p>
+                            </div>
                         </div>
-                    </header>
-
-                    {/* Content */}
-                    <div
-                        className="prose prose-lg prose-blue mx-auto text-gray-700"
-                        dangerouslySetInnerHTML={{ __html: post.content }}
-                    />
-
-                    {/* Footer of Article */}
-                    <div className="mt-12 pt-8 border-t border-gray-100">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">Share this article</h3>
-                        <div className="flex gap-4">
-                            <a
-                                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-                            >
-                                Share on X
-                            </a>
-                            <a
-                                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                            >
-                                Share on Facebook
-                            </a>
+                        <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center">
+                                <svg className="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <time dateTime={post.date}>
+                                    {new Date(post.date).toLocaleDateString('en-US', {
+                                        month: 'long',
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                    })}
+                                </time>
+                            </div>
+                            <span>•</span>
+                            <div className="flex items-center">
+                                <svg className="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>{post.readTime}</span>
+                            </div>
                         </div>
+                    </div>
+
+                    {/* Last Updated */}
+                    <p className="text-sm text-gray-500 mt-4">
+                        Last updated: {new Date(post.date).toLocaleDateString('en-US', {
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric'
+                        })}
+                    </p>
+                </header>
+
+                {/* Table of Contents */}
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-12">
+                    <h2 className="text-lg font-bold text-gray-900 mb-3">Table of Contents</h2>
+                    <ul className="space-y-2 text-sm">
+                        <li>
+                            <a href="#introduction" className="text-gray-700 hover:text-gray-900 hover:underline">Introduction</a>
+                        </li>
+                        <li>
+                            <a href="#main-content" className="text-gray-700 hover:text-gray-900 hover:underline">Main Content</a>
+                        </li>
+                        <li>
+                            <a href="#conclusion" className="text-gray-700 hover:text-gray-900 hover:underline">Conclusion</a>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* Article Content */}
+                <div
+                    className="prose prose-lg max-w-none
+                        prose-headings:font-bold prose-headings:text-gray-900
+                        prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6
+                        prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
+                        prose-h4:text-xl prose-h4:mt-6 prose-h4:mb-3
+                        prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6
+                        prose-a:text-gray-700 prose-a:no-underline hover:prose-a:underline
+                        prose-strong:text-gray-900 prose-strong:font-semibold
+                        prose-ul:my-6 prose-ul:space-y-2
+                        prose-ol:my-6 prose-ol:space-y-2
+                        prose-li:text-gray-700
+                        prose-code:text-gray-700 prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+                        prose-blockquote:border-l-4 prose-blockquote:border-gray-500 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: post.content }}
+                />
+
+                {/* Author Bio */}
+                <div className="mt-12 p-6 bg-gray-50 border border-gray-200 rounded-xl">
+                    <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center font-bold text-2xl flex-shrink-0" style={{ color: '#ffffff' }}>
+                            {post.author.charAt(0)}
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">About {post.author}</h3>
+                            <p className="text-gray-600 leading-relaxed">
+                                {post.author} is a PDF tools specialist at {SITE_NAME}, dedicated to helping users work more
+                                efficiently with digital documents. With expertise in document management, security, and productivity,
+                                they provide practical insights and tutorials for everyday PDF tasks.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Share Section */}
+                <div className="mt-12 pt-8 border-t border-gray-200">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Share this article</h3>
+                    <div className="flex flex-wrap gap-3">
+                        <a
+                            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 bg-black px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                            style={{ color: '#ffffff' }}
+                        >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                            </svg>
+                            Share on X
+                        </a>
+                        <a
+                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 bg-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                            style={{ color: '#ffffff' }}
+                        >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                            </svg>
+                            Share on Facebook
+                        </a>
+                        <a
+                            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 bg-gray-800 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors"
+                            style={{ color: '#ffffff' }}
+                        >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                            </svg>
+                            Share on LinkedIn
+                        </a>
                     </div>
                 </div>
             </article>
 
-            {/* CTA Section */}
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 md:p-12 text-center text-white">
-                    <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to manage your PDFs?</h2>
-                    <p className="text-blue-100 mb-8 text-lg">Try our professional PDF tools for free today.</p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link href="/merge-pdf" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-bold hover:bg-blue-50 transition-colors">
-                            Merge PDF
+            {/* Related Articles */}
+            {relatedPosts.length > 0 && (
+                <section className="bg-gray-50 border-t border-gray-200 py-12">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-8">Related Articles</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {relatedPosts.map((relatedPost) => (
+                                <article key={relatedPost.slug} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                                    <div className="h-48 bg-gray-700 flex items-center justify-center">
+                                        <span className="font-semibold" style={{ color: '#ffffff' }}>{relatedPost.category}</span>
+                                    </div>
+                                    <div className="p-6">
+                                        <Link href={`/blog/${relatedPost.slug}`} className="block group">
+                                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-gray-700 transition-colors mb-2 line-clamp-2">
+                                                {relatedPost.title}
+                                            </h3>
+                                        </Link>
+                                        <p className="text-gray-600 text-sm line-clamp-2 mb-4">{relatedPost.excerpt}</p>
+                                        <div className="flex items-center text-xs text-gray-500">
+                                            <time dateTime={relatedPost.date}>
+                                                {new Date(relatedPost.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </time>
+                                            <span className="mx-2">•</span>
+                                            <span>{relatedPost.readTime}</span>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* About QuickPDFTools Section */}
+            <section className="bg-white border-t border-gray-200 py-12">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">About {SITE_NAME}</h2>
+                    <p className="text-gray-600 leading-relaxed mb-6">
+                        {SITE_NAME} is a free online platform that provides professional PDF tools for everyone.
+                        We believe document management should be simple, secure, and accessible. Our mission is to
+                        help individuals and businesses work more efficiently with digital documents through intuitive
+                        tools and educational content.
+                    </p>
+                    <p className="text-gray-600 leading-relaxed mb-6">
+                        All our tools are completely free to use, require no registration, and prioritize your privacy
+                        and security. Files are processed securely and automatically deleted after processing.
+                    </p>
+                    <div className="flex flex-wrap gap-4 text-sm">
+                        <Link href="/privacy-policy" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
+                            Privacy Policy
                         </Link>
-                        <Link href="/compress-pdf" className="bg-blue-500 bg-opacity-30 border border-blue-400 text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-40 transition-colors">
-                            Compress PDF
+                        <span className="text-gray-300">|</span>
+                        <Link href="/about-us" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
+                            About Us
+                        </Link>
+                        <span className="text-gray-300">|</span>
+                        <Link href="/contact-us" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
+                            Contact
+                        </Link>
+                        <span className="text-gray-300">|</span>
+                        <Link href="/disclaimer" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
+                            Disclaimer
                         </Link>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     );
 }

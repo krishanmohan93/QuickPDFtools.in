@@ -1,70 +1,226 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* ========================================
+   PROFESSIONAL DARK MODE DESIGN SYSTEM
+   WCAG AA Compliant (4.5:1 contrast minimum)
+   ======================================== */
+
 :root {
+  /* Light Mode Colors */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-muted: #9ca3af;
+
+  --border-primary: #e5e7eb;
+  --border-secondary: #d1d5db;
+
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-light: #dbeafe;
+
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --card-shadow: rgba(0, 0, 0, 0.05);
+
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus: #2563eb;
+  --input-text: #111827;
+  --input-placeholder: #9ca3af;
+
+  --upload-bg: #ffffff;
+  --upload-border: #d1d5db;
+  --upload-hover-bg: #f9fafb;
+  --upload-hover-border: #2563eb;
+  --upload-text: #374151;
+
+  /* Legacy support */
   --background: #ffffff;
   --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark Mode Colors - Professional Slate Theme */
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+
+    --text-primary: #f1f5f9;
+    --text-secondary: #e2e8f0;
+    --text-tertiary: #cbd5e1;
+    --text-muted: #94a3b8;
+
+    --border-primary: rgba(148, 163, 184, 0.2);
+    --border-secondary: rgba(148, 163, 184, 0.3);
+
+    --accent-primary: #3b82f6;
+    --accent-hover: #60a5fa;
+    --accent-light: rgba(59, 130, 246, 0.1);
+
+    --success: #10b981;
+    --error: #ef4444;
+    --warning: #f59e0b;
+
+    --card-bg: #1e293b;
+    --card-border: rgba(148, 163, 184, 0.2);
+    --card-shadow: rgba(0, 0, 0, 0.3);
+
+    --input-bg: #1e293b;
+    --input-border: rgba(148, 163, 184, 0.3);
+    --input-focus: #3b82f6;
+    --input-text: #f1f5f9;
+    --input-placeholder: #94a3b8;
+
+    --upload-bg: #1e293b;
+    --upload-border: rgba(148, 163, 184, 0.3);
+    --upload-hover-bg: #334155;
+    --upload-hover-border: #3b82f6;
+    --upload-text: #e2e8f0;
+
+    /* Legacy support */
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+  }
+}
+
+/* Manual dark mode class support */
+.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #e2e8f0;
+  --text-tertiary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --border-primary: rgba(148, 163, 184, 0.2);
+  --border-secondary: rgba(148, 163, 184, 0.3);
+
+  --accent-primary: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-light: rgba(59, 130, 246, 0.1);
+
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+
+  --card-bg: #1e293b;
+  --card-border: rgba(148, 163, 184, 0.2);
+  --card-shadow: rgba(0, 0, 0, 0.3);
+
+  --input-bg: #1e293b;
+  --input-border: rgba(148, 163, 184, 0.3);
+  --input-focus: #3b82f6;
+  --input-text: #f1f5f9;
+  --input-placeholder: #94a3b8;
+
+  --upload-bg: #1e293b;
+  --upload-border: rgba(148, 163, 184, 0.3);
+  --upload-hover-bg: #334155;
+  --upload-hover-border: #3b82f6;
+  --upload-text: #e2e8f0;
+
+  --background: #0f172a;
+  --foreground: #f1f5f9;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ========================================
+   BASE STYLES
+   ======================================== */
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
 }
 
-/* Cookie Banner Animation */
-@keyframes slide-up {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
+/* ========================================
+   TYPOGRAPHY - WCAG AA COMPLIANT
+   ======================================== */
 
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
-.animate-slide-up {
-  animation: slide-up 0.4s ease-out;
+p,
+span,
+div {
+  color: var(--text-secondary);
 }
 
-/* ===== PROFESSIONAL MICRO-ANIMATIONS ===== */
-
-/* 1. Page Load Fade-In */
-@keyframes page-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.text-muted {
+  color: var(--text-muted) !important;
 }
 
-.page-fade-in {
-  animation: page-fade-in 180ms ease-out;
+.text-tertiary {
+  color: var(--text-tertiary) !important;
 }
 
-/* Apply to all main content */
-main {
-  animation: page-fade-in 180ms ease-out;
+/* ========================================
+   FORM ELEMENTS - DARK MODE OPTIMIZED
+   ======================================== */
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--input-border);
+  transition: all 150ms ease-out;
+  outline: none;
 }
 
-/* 2. Button Hover Animation */
+input::placeholder,
+textarea::placeholder {
+  color: var(--input-placeholder);
+  opacity: 1;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--input-focus);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--bg-tertiary);
+}
+
+/* ========================================
+   BUTTONS - PREMIUM INTERACTIONS
+   ======================================== */
+
 button,
 .btn,
 a[role="button"],
@@ -72,83 +228,107 @@ input[type="submit"],
 input[type="button"] {
   transition: all 120ms ease-out;
   cursor: pointer;
+  font-weight: 500;
 }
 
-button:hover,
-.btn:hover,
+button:hover:not(:disabled),
+.btn:hover:not(:disabled),
 a[role="button"]:hover,
-input[type="submit"]:hover,
-input[type="button"]:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+input[type="submit"]:hover:not(:disabled),
+input[type="button"]:hover:not(:disabled) {
+  box-shadow: 0 4px 12px var(--card-shadow);
   transform: translateY(-1px);
 }
 
-button:active,
-.btn:active,
+button:active:not(:disabled),
+.btn:active:not(:disabled),
 a[role="button"]:active,
-input[type="submit"]:active,
-input[type="button"]:active {
+input[type="submit"]:active:not(:disabled),
+input[type="button"]:active:not(:disabled) {
   transform: translateY(0);
 }
 
-/* 3. Upload Area Animation */
-@keyframes pulse-border {
-  0%, 100% {
-    border-color: rgb(191, 219, 254);
-  }
-  50% {
-    border-color: rgb(96, 165, 250);
-  }
+button:disabled,
+.btn:disabled,
+input[type="submit"]:disabled,
+input[type="button"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.upload-area {
+/* ========================================
+   CARDS & CONTAINERS
+   ======================================== */
+
+.card,
+.tool-card {
+  background-color: var(--card-bg);
+  border-color: var(--card-border);
+  transition: all 180ms ease-out;
+}
+
+.card:hover,
+.tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--card-shadow);
+}
+
+/* ========================================
+   UPLOAD AREAS - HIGHLY VISIBLE
+   ======================================== */
+
+.upload-area,
+[class*="border-dashed"] {
+  background-color: var(--upload-bg);
+  border-color: var(--upload-border);
+  color: var(--upload-text);
   transition: all 200ms ease-out;
+}
+
+.upload-area:hover,
+[class*="border-dashed"]:hover {
+  border-color: var(--upload-hover-border);
+  background-color: var(--upload-hover-bg);
 }
 
 .upload-area.idle {
   animation: pulse-border 2.5s ease-in-out infinite;
 }
 
-.upload-area:hover {
-  border-color: rgb(59, 130, 246);
-  background-color: rgb(239, 246, 255);
-}
+@keyframes pulse-border {
 
-/* 4. Tool Result Reveal */
-@keyframes result-reveal {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
+  0%,
+  100% {
+    border-color: var(--upload-border);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  50% {
+    border-color: var(--accent-primary);
   }
 }
 
-.result-panel {
-  animation: result-reveal 160ms ease-out;
+/* ========================================
+   LINKS - ACCESSIBLE & VISIBLE
+   ======================================== */
+
+a {
+  color: var(--accent-primary);
+  transition: color 120ms ease-out;
 }
 
-/* 5. Input Focus */
-input:not([type="checkbox"]):not([type="radio"]),
-textarea,
-select {
-  transition: all 150ms ease-out;
-  outline: none;
+a:hover {
+  color: var(--accent-hover);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):focus,
-textarea:focus,
-select:focus {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  border-color: rgb(59, 130, 246);
-}
-
-/* 6. Navigation Hover */
+/* Navigation Links */
 nav a {
   position: relative;
+  color: var(--text-secondary);
   transition: color 140ms ease-out;
+}
+
+nav a:hover {
+  color: var(--accent-primary);
 }
 
 nav a::after {
@@ -166,43 +346,112 @@ nav a:hover::after {
   width: 100%;
 }
 
-/* Additional Professional Touches */
-
-/* Card Hover */
-.card,
-.tool-card {
-  transition: all 180ms ease-out;
+/* Footer Links - Gray/White Theme */
+footer a {
+  color: rgb(209, 213, 219) !important;
+  /* text-gray-300 */
+  text-decoration: none;
 }
 
-.card:hover,
-.tool-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+footer a:hover {
+  color: rgb(255, 255, 255) !important;
+  /* text-white */
 }
 
-/* Link Hover */
-a {
-  transition: color 120ms ease-out;
+/* Footer Social Icons - Keep Individual Colors */
+footer a[aria-label="Instagram"]:hover {
+  color: rgb(244, 114, 182) !important;
+  /* text-pink-400 */
 }
 
-/* Smooth Scroll */
-html {
-  scroll-behavior: smooth;
+
+/* ========================================
+   BORDERS & DIVIDERS
+   ======================================== */
+
+.border,
+[class*="border-"] {
+  border-color: var(--border-primary);
 }
 
-/* Loading State (Non-blocking) */
-.loading {
-  opacity: 0.6;
-  pointer-events: none;
-  transition: opacity 150ms ease-out;
+hr {
+  border-color: var(--border-primary);
 }
 
-/* Success/Error Messages */
+/* ========================================
+   SHADOWS - ADAPTIVE
+   ======================================== */
+
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl {
+  box-shadow: 0 1px 3px var(--card-shadow),
+    0 1px 2px var(--card-shadow);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.page-fade-in {
+  animation: page-fade-in 180ms ease-out;
+}
+
+main {
+  animation: page-fade-in 180ms ease-out;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+@keyframes result-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-panel {
+  animation: result-reveal 160ms ease-out;
+}
+
 @keyframes slide-in-right {
   from {
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -211,6 +460,49 @@ html {
 
 .message-toast {
   animation: slide-in-right 180ms ease-out;
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 150ms ease-out;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-tertiary {
+  background-color: var(--bg-tertiary);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+*:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 /* Prevent Layout Shift */
@@ -224,13 +516,30 @@ video {
   height: auto;
 }
 
-/* Performance Optimization */
+/* Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Performance Optimization - Respect User Preferences */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  body {
+    background: white;
+    color: black;
   }
 }

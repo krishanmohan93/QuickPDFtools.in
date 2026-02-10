@@ -31,8 +31,13 @@ export async function POST(request: NextRequest) {
             copiedPages.forEach((page) => mergedPdf.addPage(page));
         }
 
-        // Save the merged PDF
-        const mergedPdfBytes = await mergedPdf.save();
+        // Save the merged PDF with high quality settings
+        const mergedPdfBytes = await mergedPdf.save({
+            useObjectStreams: false, // Disable compression for better quality
+            addDefaultPage: false,
+            objectsPerTick: 50,
+            updateFieldAppearances: true,
+        });
 
         // Return the merged PDF
         return new NextResponse(Buffer.from(mergedPdfBytes), {

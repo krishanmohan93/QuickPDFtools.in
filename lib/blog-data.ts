@@ -12,7 +12,7 @@ export interface BlogPost {
     tags?: string[];
 }
 
-const AUTHOR = "QuickPDFTools Editor";
+const AUTHOR = "Editorial Team";
 
 // Helper to generate tool tutorials
 const generateTutorial = (toolName: string, action: string, benefit: string, id: number): BlogPost => {

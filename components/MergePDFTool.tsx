@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { PDFDocument } from "pdf-lib";
+import DragDropUpload from "./DragDropUpload";
 
 export default function MergePDFTool() {
     const [files, setFiles] = useState<File[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFiles = Array.from(e.target.files || []);
+    const handleFileSelect = (selectedFiles: File[]) => {
         setFiles([...files, ...selectedFiles]);
     };
 
@@ -60,9 +60,14 @@ export default function MergePDFTool() {
                 setProgress(Math.round(((i + 1) / files.length) * 100));
             }
 
-            // Save the merged PDF
-            const pdfBytes = await mergedPdf.save();
-            const blob = new Blob([pdfBytes], { type: "application/pdf" });
+            // Save the merged PDF with high quality settings
+            const pdfBytes = await mergedPdf.save({
+                useObjectStreams: false, // Disable compression for better quality
+                addDefaultPage: false,
+                objectsPerTick: 50,
+                updateFieldAppearances: true,
+            });
+            const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
 
             // Download
@@ -98,25 +103,18 @@ export default function MergePDFTool() {
 
                 {/* Upload Area */}
                 <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-                    <label className="block">
-                        <div className="border-4 border-dashed border-purple-300 rounded-xl p-12 text-center hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer">
-                            <input
-                                type="file"
-                                accept=".pdf"
-                                multiple
-                                onChange={handleFileSelect}
-                                className="hidden"
-                                disabled={isProcessing}
-                            />
-                            <div className="text-6xl mb-4">📁</div>
-                            <div className="text-xl font-semibold text-gray-700 mb-2">
-                                Click to select PDF files
-                            </div>
-                            <div className="text-gray-500">
-                                or drag and drop files here
-                            </div>
-                        </div>
-                    </label>
+                    <DragDropUpload
+                        onFileSelect={handleFileSelect}
+                        accept=".pdf"
+                        multiple={true}
+                        maxSize={50}
+                        disabled={isProcessing}
+                        icon="📁"
+                        title="Click to select PDF files"
+                        subtitle="or drag and drop files here"
+                        borderColor="border-purple-300"
+                        hoverColor="border-purple-500 bg-purple-50"
+                    />
                 </div>
 
                 {/* File List */}

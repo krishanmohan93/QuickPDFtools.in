@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PDFDocument } from "pdf-lib";
+import DragDropUpload from "./DragDropUpload";
 
 type SplitMode = "pages" | "range" | "every";
 
@@ -16,8 +17,8 @@ export default function SplitPDFTool() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
+    const handleFileSelect = async (selectedFiles: File[]) => {
+        const selectedFile = selectedFiles[0];
         if (!selectedFile) return;
 
         setFile(selectedFile);
@@ -101,9 +102,12 @@ export default function SplitPDFTool() {
                 );
                 copiedPages.forEach(page => newPdf.addPage(page));
 
-                // Save and download
-                const pdfBytes = await newPdf.save();
-                const blob = new Blob([pdfBytes], { type: "application/pdf" });
+                // Save and download with high quality
+                const pdfBytes = await newPdf.save({
+                    useObjectStreams: false,
+                    addDefaultPage: false,
+                });
+                const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
                 const url = URL.createObjectURL(blob);
 
                 const link = document.createElement("a");
@@ -151,23 +155,17 @@ export default function SplitPDFTool() {
                 {/* Upload Area */}
                 {!file && (
                     <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-                        <label className="block">
-                            <div className="border-4 border-dashed border-green-300 rounded-xl p-12 text-center hover:border-green-500 hover:bg-green-50 transition-all cursor-pointer">
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={handleFileSelect}
-                                    className="hidden"
-                                />
-                                <div className="text-6xl mb-4">📄</div>
-                                <div className="text-xl font-semibold text-gray-700 mb-2">
-                                    Click to select a PDF file
-                                </div>
-                                <div className="text-gray-500">
-                                    or drag and drop here
-                                </div>
-                            </div>
-                        </label>
+                        <DragDropUpload
+                            onFileSelect={handleFileSelect}
+                            accept=".pdf"
+                            multiple={false}
+                            maxSize={50}
+                            icon="📄"
+                            title="Click to select a PDF file"
+                            subtitle="or drag and drop here"
+                            borderColor="border-green-300"
+                            hoverColor="border-green-500 bg-green-50"
+                        />
                     </div>
                 )}
 
@@ -206,35 +204,35 @@ export default function SplitPDFTool() {
                                 <button
                                     onClick={() => setSplitMode("pages")}
                                     className={`p-6 rounded-xl border-2 transition-all ${splitMode === "pages"
-                                            ? "border-green-500 bg-green-50"
-                                            : "border-gray-200 hover:border-green-300"
+                                        ? "border-green-500 bg-green-50"
+                                        : "border-gray-200 hover:border-green-300"
                                         }`}
                                 >
                                     <div className="text-3xl mb-2">📑</div>
-                                    <div className="font-semibold">Select Pages</div>
-                                    <div className="text-sm text-gray-500">Choose specific pages</div>
+                                    <div className="font-semibold text-gray-800">Select Pages</div>
+                                    <div className="text-sm text-gray-600">Choose specific pages</div>
                                 </button>
                                 <button
                                     onClick={() => setSplitMode("range")}
                                     className={`p-6 rounded-xl border-2 transition-all ${splitMode === "range"
-                                            ? "border-green-500 bg-green-50"
-                                            : "border-gray-200 hover:border-green-300"
+                                        ? "border-green-500 bg-green-50"
+                                        : "border-gray-200 hover:border-green-300"
                                         }`}
                                 >
                                     <div className="text-3xl mb-2">📊</div>
-                                    <div className="font-semibold">Page Range</div>
-                                    <div className="text-sm text-gray-500">Extract a range</div>
+                                    <div className="font-semibold text-gray-800">Page Range</div>
+                                    <div className="text-sm text-gray-600">Extract a range</div>
                                 </button>
                                 <button
                                     onClick={() => setSplitMode("every")}
                                     className={`p-6 rounded-xl border-2 transition-all ${splitMode === "every"
-                                            ? "border-green-500 bg-green-50"
-                                            : "border-gray-200 hover:border-green-300"
+                                        ? "border-green-500 bg-green-50"
+                                        : "border-gray-200 hover:border-green-300"
                                         }`}
                                 >
                                     <div className="text-3xl mb-2">🔢</div>
-                                    <div className="font-semibold">Every N Pages</div>
-                                    <div className="text-sm text-gray-500">Split at intervals</div>
+                                    <div className="font-semibold text-gray-800">Every N Pages</div>
+                                    <div className="text-sm text-gray-600">Split at intervals</div>
                                 </button>
                             </div>
                         </div>
@@ -267,8 +265,8 @@ export default function SplitPDFTool() {
                                             key={pageNum}
                                             onClick={() => togglePage(pageNum)}
                                             className={`aspect-square rounded-lg border-2 font-semibold transition-all ${selectedPages.includes(pageNum)
-                                                    ? "border-green-500 bg-green-500 text-white"
-                                                    : "border-gray-300 hover:border-green-400 hover:bg-green-50"
+                                                ? "border-green-500 bg-green-500 text-white"
+                                                : "border-gray-300 hover:border-green-400 hover:bg-green-50"
                                                 }`}
                                         >
                                             {pageNum}
@@ -292,7 +290,7 @@ export default function SplitPDFTool() {
                                             max={totalPages}
                                             value={rangeStart}
                                             onChange={(e) => setRangeStart(parseInt(e.target.value) || 1)}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none bg-white text-gray-900 font-semibold text-lg"
                                         />
                                     </div>
                                     <div className="text-2xl text-gray-400 mt-8">→</div>
@@ -306,7 +304,7 @@ export default function SplitPDFTool() {
                                             max={totalPages}
                                             value={rangeEnd}
                                             onChange={(e) => setRangeEnd(parseInt(e.target.value) || totalPages)}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none"
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none bg-white text-gray-900 font-semibold text-lg"
                                         />
                                     </div>
                                 </div>
@@ -329,7 +327,7 @@ export default function SplitPDFTool() {
                                         max={totalPages}
                                         value={everyN}
                                         onChange={(e) => setEveryN(parseInt(e.target.value) || 1)}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-center text-2xl font-bold"
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-center text-2xl font-bold bg-white text-gray-900"
                                     />
                                     <div className="mt-4 text-center text-gray-600">
                                         Will create {Math.ceil(totalPages / everyN)} PDF file(s)
@@ -391,10 +389,10 @@ export default function SplitPDFTool() {
                     </h2>
                     <div className="prose max-w-none text-gray-700 space-y-4">
                         <p>
-                            Split PDF helps you extract specific pages from a PDF document or divide a large PDF into 
+                            Split PDF helps you extract specific pages from a PDF document or divide a large PDF into
                             smaller files. This tool is useful when you need only selected pages instead of the entire document.
                         </p>
-                        
+
                         <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
                             How to use Split PDF:
                         </h3>
@@ -403,7 +401,7 @@ export default function SplitPDFTool() {
                             <li>Select the pages you want to extract</li>
                             <li>Download the new PDF file</li>
                         </ul>
-                        
+
                         <p className="mt-4">
                             This tool saves time and keeps your documents organized.
                         </p>
