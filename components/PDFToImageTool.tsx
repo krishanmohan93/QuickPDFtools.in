@@ -25,6 +25,36 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
 
     const formatName = format.toUpperCase();
     const formatMime = format === "jpg" ? "image/jpeg" : "image/png";
+    const theme =
+        format === "jpg"
+            ? {
+                pageBg: "from-blue-50 via-white to-blue-100",
+                titleGradient: "from-blue-600 to-blue-800",
+                progressText: "text-blue-600",
+                progressGradient: "from-blue-500 to-blue-700",
+                buttonGradient: "from-blue-600 to-blue-800",
+                buttonHover: "hover:from-blue-700 hover:to-blue-900",
+                infoBg: "bg-blue-50",
+                infoBorder: "border-blue-200",
+                infoHeading: "text-blue-900",
+                infoText: "text-blue-800",
+                uploadBorder: "border-blue-300",
+                uploadHover: "border-blue-500 bg-blue-50",
+            }
+            : {
+                pageBg: "from-indigo-50 via-white to-indigo-100",
+                titleGradient: "from-indigo-600 to-indigo-800",
+                progressText: "text-indigo-600",
+                progressGradient: "from-indigo-500 to-indigo-700",
+                buttonGradient: "from-indigo-600 to-indigo-800",
+                buttonHover: "hover:from-indigo-700 hover:to-indigo-900",
+                infoBg: "bg-indigo-50",
+                infoBorder: "border-indigo-200",
+                infoHeading: "text-indigo-900",
+                infoText: "text-indigo-800",
+                uploadBorder: "border-indigo-300",
+                uploadHover: "border-indigo-500 bg-indigo-50",
+            };
 
     const handleFileSelect = async (selectedFiles: File[]) => {
         const selectedFile = selectedFiles[0];
@@ -112,14 +142,12 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
         }
     };
 
-    const colorClass = format === "jpg" ? "blue" : "indigo";
-
     return (
-        <div className={`min-h-screen bg-gradient-to-br from-${colorClass}-50 via-white to-${colorClass}-100 p-8`}>
+        <div className={`min-h-screen bg-gradient-to-br ${theme.pageBg} p-8`}>
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">
-                    <h1 className={`text-5xl font-bold bg-gradient-to-r from-${colorClass}-600 to-${colorClass}-800 bg-clip-text text-transparent mb-4`}>
+                    <h1 className={`text-5xl font-bold bg-gradient-to-r ${theme.titleGradient} bg-clip-text text-transparent mb-4`}>
                         🖼️ PDF to {formatName}
                     </h1>
                     <p className="text-gray-600 text-lg">
@@ -138,8 +166,8 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                             icon="📄"
                             title="Click to select a PDF file"
                             subtitle="or drag and drop here"
-                            borderColor={`border-${colorClass}-300`}
-                            hoverColor={`border-${colorClass}-500 bg-${colorClass}-50`}
+                            borderColor={theme.uploadBorder}
+                            hoverColor={theme.uploadHover}
                         />
                     </div>
                 )}
@@ -228,28 +256,28 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                         {/* Progress */}
                         {isProcessing && (
                             <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-                                <div className="mb-4 text-center">
-                                    <div className="text-xl font-semibold text-gray-700 mb-2">
-                                        Converting to {formatName}...
+                                    <div className="mb-4 text-center">
+                                        <div className="text-xl font-semibold text-gray-700 mb-2">
+                                            Converting to {formatName}...
+                                        </div>
+                                        <div className={`text-4xl font-bold ${theme.progressText}`}>
+                                            {progress}%
+                                        </div>
                                     </div>
-                                    <div className={`text-4xl font-bold text-${colorClass}-600`}>
-                                        {progress}%
+                                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                                        <div
+                                            className={`bg-gradient-to-r ${theme.progressGradient} h-full transition-all duration-300 rounded-full`}
+                                            style={{ width: `${progress}%` }}
+                                        />
                                     </div>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                                    <div
-                                        className={`bg-gradient-to-r from-${colorClass}-500 to-${colorClass}-700 h-full transition-all duration-300 rounded-full`}
-                                        style={{ width: `${progress}%` }}
-                                    />
-                                </div>
-                            </div>
                         )}
 
                         {/* Convert Button */}
                         {!isProcessing && (
                             <button
                                 onClick={convertToImages}
-                                className={`w-full bg-gradient-to-r from-${colorClass}-600 to-${colorClass}-800 text-white text-xl font-bold py-6 rounded-2xl hover:from-${colorClass}-700 hover:to-${colorClass}-900 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105`}
+                                className={`w-full bg-gradient-to-r ${theme.buttonGradient} text-white text-xl font-bold py-6 rounded-2xl ${theme.buttonHover} transition-all shadow-xl hover:shadow-2xl transform hover:scale-105`}
                             >
                                 🖼️ Convert to {formatName}
                             </button>
@@ -258,11 +286,11 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                 )}
 
                 {/* Instructions */}
-                <div className={`mt-12 bg-${colorClass}-50 rounded-2xl p-8 border-2 border-${colorClass}-200`}>
-                    <h3 className={`text-xl font-bold text-${colorClass}-900 mb-4`}>
+                <div className={`mt-12 ${theme.infoBg} rounded-2xl p-8 border-2 ${theme.infoBorder}`}>
+                    <h3 className={`text-xl font-bold ${theme.infoHeading} mb-4`}>
                         📖 How to use:
                     </h3>
-                    <ol className={`space-y-2 text-${colorClass}-800`}>
+                    <ol className={`space-y-2 ${theme.infoText}`}>
                         <li>1. Upload a PDF file</li>
                         <li>2. Adjust quality and resolution settings</li>
                         <li>3. Click "Convert to {formatName}"</li>

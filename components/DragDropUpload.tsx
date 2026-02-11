@@ -29,6 +29,15 @@ export default function DragDropUpload({
 }: DragDropUploadProps) {
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const styleVars = {
+        accent: "var(--accent-primary, #2563eb)",
+        uploadBorder: "var(--upload-border, #d1d5db)",
+        uploadBg: "var(--upload-bg, #ffffff)",
+        uploadHoverBg: "var(--upload-hover-bg, #f9fafb)",
+        textPrimary: "var(--text-primary, #111827)",
+        textSecondary: "var(--text-secondary, #374151)",
+        textMuted: "var(--text-muted, #9ca3af)",
+    };
 
     const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -100,8 +109,8 @@ export default function DragDropUpload({
         <div
             className={`border-4 border-dashed rounded-xl p-12 text-center transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             style={{
-                borderColor: isDragging ? 'var(--accent-primary)' : 'var(--upload-border)',
-                backgroundColor: isDragging ? 'var(--upload-hover-bg)' : 'var(--upload-bg)',
+                borderColor: isDragging ? styleVars.accent : styleVars.uploadBorder,
+                backgroundColor: isDragging ? styleVars.uploadHoverBg : styleVars.uploadBg,
             }}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
@@ -110,14 +119,14 @@ export default function DragDropUpload({
             onClick={handleClick}
             onMouseEnter={(e) => {
                 if (!disabled && !isDragging) {
-                    e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                    e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)';
+                    e.currentTarget.style.borderColor = styleVars.accent;
+                    e.currentTarget.style.backgroundColor = styleVars.uploadHoverBg;
                 }
             }}
             onMouseLeave={(e) => {
                 if (!disabled && !isDragging) {
-                    e.currentTarget.style.borderColor = 'var(--upload-border)';
-                    e.currentTarget.style.backgroundColor = 'var(--upload-bg)';
+                    e.currentTarget.style.borderColor = styleVars.uploadBorder;
+                    e.currentTarget.style.backgroundColor = styleVars.uploadBg;
                 }
             }}
         >
@@ -131,13 +140,13 @@ export default function DragDropUpload({
                 disabled={disabled}
             />
             <div className="text-6xl mb-4">{icon}</div>
-            <div className="text-xl font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+            <div className="text-xl font-semibold mb-2" style={{ color: styleVars.textPrimary }}>
                 {title}
             </div>
-            <div className="text-base" style={{ color: 'var(--text-secondary)' }}>
+            <div className="text-base" style={{ color: styleVars.textSecondary }}>
                 {subtitle}
             </div>
-            <div className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-sm mt-2" style={{ color: styleVars.textMuted }}>
                 Maximum file size: {maxSize}MB
             </div>
         </div>

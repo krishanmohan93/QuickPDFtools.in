@@ -8,6 +8,14 @@ export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isToolsOpen, setIsToolsOpen] = useState(false);
     const toolsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const styleVars = {
+        cardBg: "var(--card-bg, #ffffff)",
+        borderPrimary: "var(--border-primary, #e5e7eb)",
+        textSecondary: "var(--text-secondary, #374151)",
+        textPrimary: "var(--text-primary, #111827)",
+        textMuted: "var(--text-muted, #9ca3af)",
+        hoverBg: "var(--upload-hover-bg, #f9fafb)",
+    };
 
     // Cleanup timeout on unmount
     useEffect(() => {
@@ -37,7 +45,7 @@ export default function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 backdrop-blur-sm border-b shadow-sm" style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-primary)' }}>
+        <header className="sticky top-0 z-50 backdrop-blur-sm border-b shadow-sm" style={{ backgroundColor: styleVars.cardBg, borderColor: styleVars.borderPrimary }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     <Link href="/" className="flex items-center gap-3 group">
@@ -55,7 +63,7 @@ export default function Header() {
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-8">
-                        <Link href="/" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                        <Link href="/" className="font-medium transition-colors" style={{ color: styleVars.textSecondary }}>
                             Home
                         </Link>
 
@@ -63,7 +71,7 @@ export default function Header() {
                         <div className="relative group">
                             <button
                                 className="font-medium transition-colors flex items-center gap-1"
-                                style={{ color: 'var(--text-secondary)' }}
+                                style={{ color: styleVars.textSecondary }}
                                 onMouseEnter={handleToolsMouseEnter}
                                 onMouseLeave={handleToolsMouseLeave}
                             >
@@ -77,7 +85,7 @@ export default function Header() {
                             {isToolsOpen && (
                                 <div
                                     className="absolute top-full left-0 mt-2 w-72 rounded-lg shadow-xl border py-2 z-50"
-                                    style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-primary)' }}
+                                    style={{ backgroundColor: styleVars.cardBg, borderColor: styleVars.borderPrimary }}
                                     onMouseEnter={handleToolsMouseEnter}
                                     onMouseLeave={handleToolsMouseLeave}
                                 >
@@ -88,7 +96,7 @@ export default function Header() {
                                                 href={tool.path}
                                                 className="block px-4 py-2 transition-colors"
                                                 style={{ backgroundColor: 'transparent' }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                             >
                                                 <div className="flex items-start gap-3">
@@ -97,10 +105,10 @@ export default function Header() {
                                                         style={{ backgroundColor: tool.color }}
                                                     />
                                                     <div>
-                                                        <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+                                                        <div className="font-medium text-sm" style={{ color: styleVars.textPrimary }}>
                                                             {tool.name}
                                                         </div>
-                                                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                                                        <div className="text-xs mt-0.5" style={{ color: styleVars.textMuted }}>
                                                             {tool.description}
                                                         </div>
                                                     </div>
@@ -112,16 +120,16 @@ export default function Header() {
                             )}
                         </div>
 
-                        <Link href="/about-us" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                        <Link href="/about-us" className="font-medium transition-colors" style={{ color: styleVars.textSecondary }}>
                             About Us
                         </Link>
-                        <Link href="/blog" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                        <Link href="/blog" className="font-medium transition-colors" style={{ color: styleVars.textSecondary }}>
                             Blog
                         </Link>
-                        <Link href="/faq" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                        <Link href="/faq" className="font-medium transition-colors" style={{ color: styleVars.textSecondary }}>
                             FAQ
                         </Link>
-                        <Link href="/contact-us" className="font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                        <Link href="/contact-us" className="font-medium transition-colors" style={{ color: styleVars.textSecondary }}>
                             Contact
                         </Link>
                     </nav>
@@ -129,8 +137,8 @@ export default function Header() {
                     {/* Mobile Menu Button */}
                     <button
                         className="md:hidden p-2 rounded-lg transition-colors"
-                        style={{ color: 'var(--text-secondary)' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                        style={{ color: styleVars.textSecondary }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
                         aria-label="Toggle menu"
@@ -150,13 +158,13 @@ export default function Header() {
 
             {/* Mobile Menu */}
             {isMenuOpen && (
-                <div className="md:hidden border-t" style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--card-bg)' }}>
+                <div className="md:hidden border-t" style={{ borderColor: styleVars.borderPrimary, backgroundColor: styleVars.cardBg }}>
                     <div className="px-4 pt-2 pb-4 space-y-1">
                         <Link
                             href="/"
                             className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
@@ -165,7 +173,7 @@ export default function Header() {
 
                         {/* Mobile Tools Section */}
                         <div className="py-2">
-                            <div className="px-3 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                            <div className="px-3 text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: styleVars.textMuted }}>
                                 PDF Tools
                             </div>
                             <div className="space-y-1 max-h-64 overflow-y-auto">
@@ -174,8 +182,8 @@ export default function Header() {
                                         key={tool.id}
                                         href={tool.path}
                                         className="block px-3 py-2 rounded-md text-sm transition-colors"
-                                        style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                                        style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                         onClick={() => setIsMenuOpen(false)}
                                     >
@@ -194,8 +202,8 @@ export default function Header() {
                         <Link
                             href="/about-us"
                             className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
@@ -204,8 +212,8 @@ export default function Header() {
                         <Link
                             href="/blog"
                             className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
@@ -214,8 +222,8 @@ export default function Header() {
                         <Link
                             href="/faq"
                             className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
@@ -224,8 +232,8 @@ export default function Header() {
                         <Link
                             href="/contact-us"
                             className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
@@ -234,8 +242,8 @@ export default function Header() {
                         <Link
                             href="/privacy"
                             className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
@@ -244,8 +252,8 @@ export default function Header() {
                         <Link
                             href="/terms"
                             className="block px-3 py-2 rounded-md text-base font-medium transition-colors"
-                            style={{ color: 'var(--text-secondary)', backgroundColor: 'transparent' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--upload-hover-bg)'}
+                            style={{ color: styleVars.textSecondary, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styleVars.hoverBg}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => setIsMenuOpen(false)}
                         >
