@@ -7,6 +7,7 @@ import { SITE_NAME, PDF_TOOLS } from "@/lib/constants";
 export default function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isToolsOpen, setIsToolsOpen] = useState(false);
+    const [hasAnimated, setHasAnimated] = useState(false);
     const toolsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const styleVars = {
         cardBg: "var(--card-bg, #ffffff)",
@@ -17,9 +18,15 @@ export default function Header() {
         hoverBg: "var(--upload-hover-bg, #f9fafb)",
     };
 
-    // Cleanup timeout on unmount
+    // Cleanup timeout on unmount and trigger initial animation
     useEffect(() => {
+        // Trigger the pulse animation once on mount
+        const timer = setTimeout(() => {
+            setHasAnimated(true);
+        }, 3000); // Animation lasts 3 seconds
+
         return () => {
+            clearTimeout(timer);
             if (toolsTimeoutRef.current) {
                 clearTimeout(toolsTimeoutRef.current);
             }
@@ -132,6 +139,36 @@ export default function Header() {
                         <Link href="/contact-us" className="font-medium transition-colors" style={{ color: styleVars.textSecondary }}>
                             Contact
                         </Link>
+
+                        {/* Merge PDF CTA Button */}
+                        <Link
+                            href="/merge-pdf"
+                            className="cta-merge-pdf"
+                            style={{
+                                display: 'inline-block',
+                                padding: '10px 20px',
+                                backgroundColor: '#2563eb',
+                                color: '#ffffff',
+                                fontWeight: '600',
+                                borderRadius: '8px',
+                                textDecoration: 'none',
+                                transition: 'all 0.2s ease',
+                                cursor: 'pointer',
+                                animation: hasAnimated ? 'none' : 'gentle-pulse 3s ease-in-out',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#1d4ed8';
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.3)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#2563eb';
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.boxShadow = 'none';
+                            }}
+                        >
+                            Merge PDF
+                        </Link>
                     </nav>
 
                     {/* Mobile Menu Button */}
@@ -238,6 +275,28 @@ export default function Header() {
                             onClick={() => setIsMenuOpen(false)}
                         >
                             Contact
+                        </Link>
+
+                        {/* Mobile Merge PDF CTA Button */}
+                        <Link
+                            href="/merge-pdf"
+                            className="block mx-3 my-3 px-4 py-3 rounded-lg text-center font-semibold transition-all"
+                            style={{
+                                backgroundColor: '#2563eb',
+                                color: '#ffffff',
+                                animation: hasAnimated ? 'none' : 'gentle-pulse 3s ease-in-out',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#1d4ed8';
+                                e.currentTarget.style.transform = 'scale(1.02)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#2563eb';
+                                e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                            onClick={() => setIsMenuOpen(false)}
+                        >
+                            Merge PDF
                         </Link>
                         <Link
                             href="/privacy"

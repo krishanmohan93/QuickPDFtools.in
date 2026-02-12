@@ -1,5 +1,6 @@
 import ToolsGrid from "@/components/ToolsGrid";
 import HomeSEOContent from "@/components/HomeSEOContent";
+import AntigravityBackground from "@/components/AntigravityBackground";
 import { SITE_NAME } from "@/lib/constants";
 import { generateHomeMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
@@ -8,10 +9,11 @@ export const metadata: Metadata = generateHomeMetadata();
 
 export default function Home() {
   return (
-    <div className="w-full">
+    <div className="relative z-10 w-full">
       {/* Hero Section - Full Screen */}
-      <section className="bg-white min-h-screen flex items-center justify-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section className="relative bg-white min-h-screen">
+        <AntigravityBackground />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[15px]">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium mb-6" style={{ backgroundColor: '#e8eef5', color: '#2563eb' }}>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
