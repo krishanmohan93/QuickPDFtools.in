@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { BLOG_POSTS } from '@/lib/blog-data';
 import { SITE_NAME } from '@/lib/constants';
+import { formatDateUTC } from '@/lib/date';
 
 const categories = ['All', 'Guides', 'Tutorials', 'Reviews', 'Security', 'Comparisons'];
 
@@ -203,12 +204,8 @@ export default function BlogPage() {
                                                     <span className="font-medium text-gray-700">{post.author}</span>
                                                 </div>
                                                 <span className="mx-2">•</span>
-                                                <time dateTime={post.date}>
-                                                    {new Date(post.date).toLocaleDateString('en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                        year: 'numeric'
-                                                    })}
+                                                <time dateTime={post.date} suppressHydrationWarning>
+                                                    {formatDateUTC(post.date, "short")}
                                                 </time>
                                                 <span className="mx-2">•</span>
                                                 <span>{post.readTime}</span>

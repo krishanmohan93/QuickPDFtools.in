@@ -141,7 +141,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={inter.variable}>
       <head>
         <script
           type="application/ld+json"
@@ -157,15 +157,15 @@ export default function RootLayout({
                 function enableTracking() {
                   // Initialize Google AdSense (add your publisher ID)
                   window.adsbygoogle = window.adsbygoogle || [];
-                  
+
                   // Initialize Google Analytics (add your GA4 ID)
                   // window.dataLayer = window.dataLayer || [];
                   // function gtag(){dataLayer.push(arguments);}
                   // gtag('js', new Date());
                   // gtag('config', 'G-XXXXXXXXXX');
-                  
+
                   console.log('✅ Tracking enabled - User consented to cookies');
-                  
+
                   // Dispatch event for other scripts
                   window.dispatchEvent(new CustomEvent('cookieConsentAccepted'));
                 }
@@ -185,7 +185,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased" suppressHydrationWarning>
+      <body className="font-sans antialiased bg-white">
         <Header />
         <main className="min-h-screen">{children}</main>
         <Footer />

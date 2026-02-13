@@ -11,11 +11,21 @@ export default function SplitPDFTool() {
     const [totalPages, setTotalPages] = useState(0);
     const [splitMode, setSplitMode] = useState<SplitMode>("pages");
     const [selectedPages, setSelectedPages] = useState<number[]>([]);
-    const [rangeStart, setRangeStart] = useState(1);
-    const [rangeEnd, setRangeEnd] = useState(1);
-    const [everyN, setEveryN] = useState(1);
+    const [rangeStart, setRangeStart] = useState("1");
+    const [rangeEnd, setRangeEnd] = useState("1");
+    const [everyN, setEveryN] = useState("1");
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+
+    const maxPages = Math.max(totalPages, 1);
+    const parsePageValue = (value: string, fallback: number) => {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    };
+    const clampPageValue = (value: number) => Math.min(Math.max(value, 1), maxPages);
+    const rangeStartValue = clampPageValue(parsePageValue(rangeStart, 1));
+    const rangeEndValue = clampPageValue(parsePageValue(rangeEnd, maxPages));
+    const everyNValue = clampPageValue(parsePageValue(everyN, 1));
 
     const handleFileSelect = async (selectedFiles: File[]) => {
         const selectedFile = selectedFiles[0];
@@ -29,7 +39,9 @@ export default function SplitPDFTool() {
             const pdf = await PDFDocument.load(arrayBuffer);
             const pageCount = pdf.getPageCount();
             setTotalPages(pageCount);
-            setRangeEnd(pageCount);
+            setRangeStart("1");
+            setRangeEnd(String(pageCount));
+            setEveryN("1");
         } catch (error) {
             console.error("Error loading PDF:", error);
             alert("Failed to load PDF. Please try again.");
@@ -66,20 +78,20 @@ export default function SplitPDFTool() {
             // Each selected page becomes its own PDF
             pagesToExtract = selectedPages.map(p => [p]);
         } else if (splitMode === "range") {
-            if (rangeStart < 1 || rangeEnd > totalPages || rangeStart > rangeEnd) {
+            if (rangeStartValue < 1 || rangeEndValue > totalPages || rangeStartValue > rangeEndValue) {
                 alert("Invalid page range");
                 return;
             }
             // Extract range as single PDF
-            pagesToExtract = [Array.from({ length: rangeEnd - rangeStart + 1 }, (_, i) => rangeStart + i)];
+            pagesToExtract = [Array.from({ length: rangeEndValue - rangeStartValue + 1 }, (_, i) => rangeStartValue + i)];
         } else if (splitMode === "every") {
-            if (everyN < 1 || everyN > totalPages) {
+            if (everyNValue < 1 || everyNValue > totalPages) {
                 alert("Invalid split interval");
                 return;
             }
             // Split every N pages
-            for (let i = 1; i <= totalPages; i += everyN) {
-                const end = Math.min(i + everyN - 1, totalPages);
+            for (let i = 1; i <= totalPages; i += everyNValue) {
+                const end = Math.min(i + everyNValue - 1, totalPages);
                 pagesToExtract.push(Array.from({ length: end - i + 1 }, (_, j) => i + j));
             }
         }
@@ -115,7 +127,7 @@ export default function SplitPDFTool() {
                 if (splitMode === "pages") {
                     link.download = `page_${pages[0]}.pdf`;
                 } else if (splitMode === "range") {
-                    link.download = `pages_${rangeStart}-${rangeEnd}.pdf`;
+                    link.download = `pages_${rangeStartValue}-${rangeEndValue}.pdf`;
                 } else {
                     link.download = `split_${i + 1}.pdf`;
                 }
@@ -189,6 +201,9 @@ export default function SplitPDFTool() {
                                         setFile(null);
                                         setTotalPages(0);
                                         setSelectedPages([]);
+                                        setRangeStart("1");
+                                        setRangeEnd("1");
+                                        setEveryN("1");
                                     }}
                                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                                 >
@@ -289,8 +304,11 @@ export default function SplitPDFTool() {
                                             min="1"
                                             max={totalPages}
                                             value={rangeStart}
-                                            onChange={(e) => setRangeStart(parseInt(e.target.value) || 1)}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none bg-white text-gray-900 font-semibold text-lg"
+                                            onChange={(e) => setRangeStart(e.target.value)}
+                                            onBlur={() => setRangeStart(String(rangeStartValue))}
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="no-spinner w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none bg-white text-gray-900 font-semibold text-lg"
                                         />
                                     </div>
                                     <div className="text-2xl text-gray-400 mt-8">→</div>
@@ -303,13 +321,16 @@ export default function SplitPDFTool() {
                                             min="1"
                                             max={totalPages}
                                             value={rangeEnd}
-                                            onChange={(e) => setRangeEnd(parseInt(e.target.value) || totalPages)}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none bg-white text-gray-900 font-semibold text-lg"
+                                            onChange={(e) => setRangeEnd(e.target.value)}
+                                            onBlur={() => setRangeEnd(String(rangeEndValue))}
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="no-spinner w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none bg-white text-gray-900 font-semibold text-lg"
                                         />
                                     </div>
                                 </div>
                                 <div className="mt-4 text-center text-gray-600">
-                                    Will extract pages {rangeStart} to {rangeEnd} ({rangeEnd - rangeStart + 1} pages)
+                                    Will extract pages {rangeStartValue} to {rangeEndValue} ({Math.max(rangeEndValue - rangeStartValue + 1, 0)} pages)
                                 </div>
                             </div>
                         )}
@@ -326,11 +347,14 @@ export default function SplitPDFTool() {
                                         min="1"
                                         max={totalPages}
                                         value={everyN}
-                                        onChange={(e) => setEveryN(parseInt(e.target.value) || 1)}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-center text-2xl font-bold bg-white text-gray-900"
+                                        onChange={(e) => setEveryN(e.target.value)}
+                                        onBlur={() => setEveryN(String(everyNValue))}
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        className="no-spinner w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none text-center text-2xl font-bold bg-white text-gray-900"
                                     />
                                     <div className="mt-4 text-center text-gray-600">
-                                        Will create {Math.ceil(totalPages / everyN)} PDF file(s)
+                                        Will create {Math.ceil(totalPages / everyNValue)} PDF file(s)
                                     </div>
                                 </div>
                             </div>

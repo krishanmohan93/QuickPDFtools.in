@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BLOG_POSTS } from '@/lib/blog-data';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
+import { formatDateUTC } from '@/lib/date';
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -145,12 +146,8 @@ export default async function BlogPostPage({ params }: Props) {
                                 <svg className="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <time dateTime={post.date}>
-                                    {new Date(post.date).toLocaleDateString('en-US', {
-                                        month: 'long',
-                                        day: 'numeric',
-                                        year: 'numeric'
-                                    })}
+                                <time dateTime={post.date} suppressHydrationWarning>
+                                    {formatDateUTC(post.date, "long")}
                                 </time>
                             </div>
                             <span>•</span>
@@ -165,11 +162,7 @@ export default async function BlogPostPage({ params }: Props) {
 
                     {/* Last Updated */}
                     <p className="text-sm text-gray-500 mt-4">
-                        Last updated: {new Date(post.date).toLocaleDateString('en-US', {
-                            month: 'long',
-                            day: 'numeric',
-                            year: 'numeric'
-                        })}
+                        Last updated: <span suppressHydrationWarning>{formatDateUTC(post.date, "long")}</span>
                     </p>
                 </header>
 
@@ -287,8 +280,8 @@ export default async function BlogPostPage({ params }: Props) {
                                         </Link>
                                         <p className="text-gray-600 text-sm line-clamp-2 mb-4">{relatedPost.excerpt}</p>
                                         <div className="flex items-center text-xs text-gray-500">
-                                            <time dateTime={relatedPost.date}>
-                                                {new Date(relatedPost.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            <time dateTime={relatedPost.date} suppressHydrationWarning>
+                                                {formatDateUTC(relatedPost.date, "short")}
                                             </time>
                                             <span className="mx-2">•</span>
                                             <span>{relatedPost.readTime}</span>

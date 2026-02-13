@@ -52,8 +52,8 @@ export default function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-50 backdrop-blur-sm border-b shadow-sm" style={{ backgroundColor: styleVars.cardBg, borderColor: styleVars.borderPrimary }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-50 backdrop-blur-sm border-b shadow-sm bg-white transition-colors duration-300" style={{ borderColor: styleVars.borderPrimary }}>
+            <div className="w-full mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
                 <div className="flex items-center justify-between h-20">
                     <Link href="/" className="flex items-center gap-3 group">
                         <div className="w-14 h-14 flex items-center justify-center">
@@ -63,14 +63,14 @@ export default function Header() {
                                 className="w-full h-full object-contain"
                             />
                         </div>
-                        <span className="text-xl font-bold" style={{ color: '#2563eb' }}>
+                        <span className="text-xl font-bold text-blue-600 transition-colors duration-300">
                             {SITE_NAME}
                         </span>
                     </Link>
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-8">
-                        <Link href="/" className="font-medium transition-colors" style={{ color: styleVars.textSecondary }}>
+                        <Link href="/" className="font-medium transition-colors text-gray-700 hover:text-blue-600">
                             Home
                         </Link>
 

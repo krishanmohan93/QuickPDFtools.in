@@ -14,11 +14,13 @@ export interface BlogPost {
 
 const AUTHOR = "Editorial Team";
 
+const CURRENT_YEAR = new Date().getUTCFullYear();
+
 // Helper to generate tool tutorials
 const generateTutorial = (toolName: string, action: string, benefit: string, id: number): BlogPost => {
     return {
         slug: `how-to-${action.toLowerCase().replace(/\s+/g, '-')}`,
-        title: `How to ${action} Online for Free (${new Date().getFullYear()} Guide)`,
+        title: `How to ${action} Online for Free (${CURRENT_YEAR} Guide)`,
         excerpt: `Looking for the best way to ${action.toLowerCase()}? Use our free ${toolName} to ${benefit}. Fast, secure, and no installation required.`,
         content: `
       <h2>The Easiest Way to ${action}</h2>
@@ -52,7 +54,7 @@ const generateTutorial = (toolName: string, action: string, benefit: string, id:
       <h2>Conclusion</h2>
       <p>Don't let PDF tasks slow you down. Try our <strong>${toolName}</strong> today and experience the difference. It’s fast, free, and incredibly easy to use.</p>
     `,
-        date: new Date(2024, 0, 15 + id).toISOString(), // Spread dates
+        date: new Date(Date.UTC(2024, 0, 15 + id)).toISOString(), // Spread dates
         author: AUTHOR,
         readTime: "3 min read",
         category: "Tutorials",
