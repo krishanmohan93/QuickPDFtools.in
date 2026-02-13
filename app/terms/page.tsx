@@ -26,7 +26,7 @@ export default function TermsPage() {
                 {/* Introduction */}
                 <div className="prose prose-lg max-w-none">
                     <p className="text-gray-700 leading-relaxed mb-6">
-                        By using Quick PDF Tools, you agree to use our services responsibly and legally. Users are 
+                        By using QuickPDFTools, you agree to use our services responsibly and legally. Users are 
                         responsible for the content they upload and process using our tools. We do not claim ownership 
                         of uploaded files and do not permanently store documents.
                     </p>

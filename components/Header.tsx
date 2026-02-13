@@ -76,17 +76,20 @@ export default function Header() {
 
                         {/* Tools Dropdown */}
                         <div className="relative group">
-                            <button
+                            <Link
+                                href="/#tools"
                                 className="font-medium transition-colors flex items-center gap-1"
                                 style={{ color: styleVars.textSecondary }}
                                 onMouseEnter={handleToolsMouseEnter}
                                 onMouseLeave={handleToolsMouseLeave}
+                                aria-haspopup="menu"
+                                aria-expanded={isToolsOpen}
                             >
                                 Tools
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
-                            </button>
+                            </Link>
 
                             {/* Dropdown Menu */}
                             {isToolsOpen && (
@@ -169,6 +172,7 @@ export default function Header() {
                         >
                             Merge PDF
                         </Link>
+
                     </nav>
 
                     {/* Mobile Menu Button */}
@@ -276,7 +280,6 @@ export default function Header() {
                         >
                             Contact
                         </Link>
-
                         {/* Mobile Merge PDF CTA Button */}
                         <Link
                             href="/merge-pdf"

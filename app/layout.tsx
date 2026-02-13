@@ -4,8 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
-import { SITE_NAME, SITE_DESCRIPTION, SITE_KEYWORDS, SITE_URL } from "@/lib/constants";
-import { generateHomeMetadata } from "@/lib/metadata";
+import { SITE_NAME, SITE_KEYWORDS, SITE_URL } from "@/lib/constants";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,10 +15,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} - Professional PDF Tools Online for Free`,
+    default: `Professional PDF Tools Online for Free | ${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
   },
-  description: SITE_DESCRIPTION,
+  description: "Professional PDF tools to merge, convert, split, compress, and edit files online.",
   keywords: SITE_KEYWORDS,
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -39,8 +38,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: SITE_URL,
-    title: `${SITE_NAME} - Professional PDF Tools Online`,
-    description: SITE_DESCRIPTION,
+    title: `Professional PDF Tools Online | ${SITE_NAME}`,
+    description: "Professional PDF tools to merge, convert, split, compress, and edit files online.",
     siteName: SITE_NAME,
     images: [
       {
@@ -53,8 +52,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} - Professional PDF Tools Online`,
-    description: SITE_DESCRIPTION,
+    title: `Professional PDF Tools Online | ${SITE_NAME}`,
+    description: "Professional PDF tools to merge, convert, split, compress, and edit files online.",
     images: [`${SITE_URL}/logo.png`],
   },
   verification: {
@@ -77,54 +76,6 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "WebApplication",
-        "@id": `${SITE_URL}#webapp`,
-        "name": SITE_NAME,
-        "url": SITE_URL,
-        "description": "Professional PDF tools online for free. Edit PDFs with same font, convert PDF to Word/Excel/PPT, merge, split, compress PDFs.",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "Web Browser",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "featureList": [
-          "PDF Merging",
-          "PDF Splitting",
-          "PDF Compression",
-          "PDF to Word Conversion",
-          "Word to PDF Conversion",
-          "PDF to Excel Conversion",
-          "Excel to PDF Conversion",
-          "PDF to PowerPoint Conversion",
-          "PowerPoint to PDF Conversion",
-          "PDF Protection",
-          "PDF Rotation",
-          "PDF Reordering",
-          "PDF Editing"
-        ],
-        "screenshot": `${SITE_URL}/screenshot.jpg`
-      },
-      {
-        "@type": "SoftwareApplication",
-        "@id": `${SITE_URL}#softwareapp`,
-        "name": SITE_NAME,
-        "url": SITE_URL,
-        "description": "Free online PDF tools for editing, converting, merging, splitting, and compressing PDF files.",
-        "applicationCategory": "BusinessApplication",
-        "operatingSystem": "Any",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "author": {
-          "@type": "Organization",
-          "name": SITE_NAME
-        }
-      },
-      {
         "@type": "Organization",
         "@id": `${SITE_URL}#organization`,
         "name": SITE_NAME,
@@ -136,6 +87,17 @@ export default function RootLayout({
         "sameAs": [
           // Add social media URLs here if available
         ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}#website`,
+        "url": SITE_URL,
+        "name": SITE_NAME,
+        "description": "Professional PDF tools to merge, convert, split, compress, and edit files online.",
+        "publisher": {
+          "@id": `${SITE_URL}#organization`
+        },
+        "inLanguage": "en-US"
       }
     ]
   };

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { FileUp, Download, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { SITE_URL } from '@/lib/constants';
 
 interface ConversionResult {
   success: boolean;
@@ -13,6 +14,25 @@ interface ConversionResult {
 }
 
 export default function PDFToExcelPage() {
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "PDF to Excel",
+        item: `${SITE_URL}/pdf-to-excel`,
+      },
+    ],
+  };
+
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -153,6 +173,10 @@ export default function PDFToExcelPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

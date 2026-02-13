@@ -8,8 +8,8 @@ export default function MergePDFPage() {
         <>
             <ToolPage
                 toolId="merge-pdf"
-                toolName="Merge PDFs"
-                toolDescription="Combine multiple PDF files into one document"
+                toolName="Merge PDF Files Online - QuickPDFTools"
+                toolDescription="Combine multiple PDF files into one document with fast, free PDF tools."
                 acceptedFileTypes={{ pdf: ALLOWED_FILE_TYPES.pdf }}
                 apiEndpoint="/api/merge-pdf"
                 outputFileName="merged.pdf"
@@ -29,8 +29,8 @@ export default function MergePDFPage() {
                     </h2>
                     <div className="prose max-w-none text-gray-700 space-y-4">
                         <p>
-                            Merge PDF allows you to combine multiple PDF files into a single document. This is helpful 
-                            when you want to organize related documents, such as chapters, invoices, or scanned pages, 
+                            Merge PDF allows you to combine multiple PDF files into a single document. This is helpful
+                            when you want to organize related documents, such as chapters, invoices, or scanned pages,
                             into one file.
                         </p>
                         
@@ -44,7 +44,10 @@ export default function MergePDFPage() {
                         </ul>
                         
                         <p className="mt-4">
-                            No registration is required, and the process is fast and secure.
+                            No registration is required, and the process is fast and secure. If you also need to
+                            <a href="/split-pdf" className="text-blue-600 hover:underline"> split PDF documents</a>
+                            or <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDF files</a>,
+                            explore our free PDF tools.
                         </p>
                     </div>
                 </div>

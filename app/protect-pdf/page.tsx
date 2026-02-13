@@ -1,5 +1,6 @@
 import ProtectPDFTool from "@/components/ProtectPDFTool";
 import { Metadata } from "next";
+import { SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
     title: "Protect PDF - Add Password Protection | PDF Master Tools",
@@ -8,5 +9,32 @@ export const metadata: Metadata = {
 };
 
 export default function ProtectPDFPage() {
-    return <ProtectPDFTool />;
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "Protect PDF",
+                item: `${SITE_URL}/protect-pdf`,
+            },
+        ],
+    };
+
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+            />
+            <ProtectPDFTool />
+        </>
+    );
 }

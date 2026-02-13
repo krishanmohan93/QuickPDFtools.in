@@ -1,15 +1,32 @@
 import ToolsGrid from "@/components/ToolsGrid";
 import HomeSEOContent from "@/components/HomeSEOContent";
 import AntigravityBackground from "@/components/AntigravityBackground";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { generateHomeMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = generateHomeMetadata();
 
 export default function Home() {
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+    ],
+  };
+
   return (
     <div className="relative z-10 w-full">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       {/* Hero Section - Full Screen */}
       <section className="relative bg-white min-h-screen transition-colors duration-300 flex items-center">
         <AntigravityBackground />
@@ -23,11 +40,11 @@ export default function Home() {
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight transition-colors duration-300">
-              Free Online PDF Tools You Can Trust
+              QuickPDFTools - Fast PDF Tools Online
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 mb-10 leading-relaxed transition-colors duration-300">
-              Work with PDF files directly in your browser. No signup required, no watermarks,
-              and your files are deleted automatically after processing.
+              QuickPDFTools is a set of quick PDF tools to merge PDF files, split PDF documents, compress, and convert in seconds.
+              These PDF tools online run in your browser with no signup, no watermarks, and automatic file deletion.
             </p>
 
             <div className="flex flex-wrap justify-center gap-8 text-base text-gray-600 mb-12 transition-colors duration-300">
@@ -64,7 +81,12 @@ export default function Home() {
       {/* Popular Tools - Below the fold */}
       <section id="tools" className="py-16 bg-gray-50 transition-colors duration-300">
         <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 transition-colors duration-300">Popular PDF Tools</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 transition-colors duration-300">
+            PDF Tools for Merge PDF, Split PDF, and More
+          </h2>
+          <p className="text-gray-600 mb-8 transition-colors duration-300">
+            Choose the right PDF tool for your task, from merging and splitting to converting and compressing.
+          </p>
           <ToolsGrid />
         </div>
       </section>
@@ -224,7 +246,7 @@ export default function Home() {
 
             <div className="space-y-4 text-gray-700 leading-relaxed transition-colors duration-300">
             <p>
-              {SITE_NAME} is a free online platform that helps you work with PDF files without installing any software.
+              {SITE_NAME} is a free online platform for quick PDF tools that helps you work with PDF files without installing any software.
               We built this tool because we understand that not everyone wants to download programs or pay for subscriptions
               just to merge a few files or convert a document.
             </p>

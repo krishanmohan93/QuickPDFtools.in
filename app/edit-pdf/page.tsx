@@ -1,15 +1,42 @@
 import { Metadata } from "next";
 import EditPDFTool from "@/components/EditPDFTool";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Edit PDF Online - Modify PDF Text While Preserving Fonts | PDFMasterTools",
-  description: "Edit text in PDF files directly online. Preserve original fonts, sizes, colors, and layouts. Professional PDF editor with inline text editing.",
+  title: `Edit PDF Online – Preserve Fonts & Layout | ${SITE_NAME}`,
+  description: "Edit text in PDF files directly online while preserving original fonts, sizes, colors, and layout.",
   keywords: "edit pdf, modify pdf, pdf editor, change pdf text, edit pdf online, pdf text editor",
+  alternates: {
+    canonical: `${SITE_URL}/edit-pdf`,
+  },
 };
 
 export default function EditPDFPage() {
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Edit PDF",
+        item: `${SITE_URL}/edit-pdf`,
+      },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}

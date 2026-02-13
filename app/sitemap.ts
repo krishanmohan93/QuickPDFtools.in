@@ -17,67 +17,67 @@ export default function sitemap(): MetadataRoute.Sitemap {
             url: `${SITE_URL}/about-us`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.7,
+            priority: 0.8,
         },
         {
             url: `${SITE_URL}/contact-us`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.7,
+            priority: 0.8,
         },
         {
-            url: `${SITE_URL}/privacy-policy`,
+            url: `${SITE_URL}/privacy`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.5,
+            priority: 0.3,
         },
         {
-            url: `${SITE_URL}/terms-and-conditions`,
+            url: `${SITE_URL}/terms`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.5,
+            priority: 0.3,
         },
         {
             url: `${SITE_URL}/disclaimer`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.5,
+            priority: 0.3,
         },
         {
             url: `${SITE_URL}/cookie-policy`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.5,
+            priority: 0.3,
         },
         {
             url: `${SITE_URL}/refund-policy`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.5,
+            priority: 0.3,
         },
         {
             url: `${SITE_URL}/security-policy`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.5,
+            priority: 0.3,
         },
         {
             url: `${SITE_URL}/dmca`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.5,
+            priority: 0.3,
         },
         {
             url: `${SITE_URL}/faq`,
             lastModified: currentDate,
             changeFrequency: "monthly" as const,
-            priority: 0.7,
+            priority: 0.8,
         },
         {
             url: `${SITE_URL}/blog`,
             lastModified: currentDate,
             changeFrequency: "weekly" as const,
-            priority: 0.8,
+            priority: 0.85,
         },
     ];
 
@@ -86,7 +86,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         url: `${SITE_URL}/blog/${post.slug}`,
         lastModified: new Date(post.date),
         changeFrequency: "monthly" as const,
-        priority: 0.7,
+        priority: 0.6,
     }));
 
     // Tool pages
@@ -94,7 +94,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         url: `${SITE_URL}${tool.path}`,
         lastModified: currentDate,
         changeFrequency: "weekly" as const,
-        priority: 0.9,
+        priority: tool.id === "merge-pdf" ? 0.95 : 0.75,
     }));
 
     return [...staticPages, ...blogPosts, ...toolPages];

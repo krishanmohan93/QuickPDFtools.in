@@ -22,8 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 
     return {
-        title: `${post.title} - ${SITE_NAME} Blog`,
+        title: `${post.title} | ${SITE_NAME}`,
         description: post.excerpt,
+        alternates: {
+            canonical: `${SITE_URL}/blog/${post.slug}`,
+        },
         openGraph: {
             title: post.title,
             description: post.excerpt,
@@ -89,12 +92,41 @@ export default async function BlogPostPage({ params }: Props) {
         },
     };
 
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "Blog",
+                item: `${SITE_URL}/blog`,
+            },
+            {
+                "@type": "ListItem",
+                position: 3,
+                name: post.title,
+                item: `${SITE_URL}/blog/${post.slug}`,
+            },
+        ],
+    };
+
     return (
         <div className="bg-white min-h-screen">
             {/* JSON-LD Script */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
 
             {/* Article Container */}
@@ -309,7 +341,7 @@ export default async function BlogPostPage({ params }: Props) {
                         and security. Files are processed securely and automatically deleted after processing.
                     </p>
                     <div className="flex flex-wrap gap-4 text-sm">
-                        <Link href="/privacy-policy" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
+                        <Link href="/privacy" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
                             Privacy Policy
                         </Link>
                         <span className="text-gray-300">|</span>

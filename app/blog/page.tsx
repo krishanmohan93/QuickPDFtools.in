@@ -3,12 +3,31 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { BLOG_POSTS } from '@/lib/blog-data';
-import { SITE_NAME } from '@/lib/constants';
+import { SITE_NAME, SITE_URL } from '@/lib/constants';
 import { formatDateUTC } from '@/lib/date';
 
 const categories = ['All', 'Guides', 'Tutorials', 'Reviews', 'Security', 'Comparisons'];
 
 export default function BlogPage() {
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "Blog",
+                item: `${SITE_URL}/blog`,
+            },
+        ],
+    };
+
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [postsToShow, setPostsToShow] = useState(4);
@@ -61,6 +80,10 @@ export default function BlogPage() {
 
     return (
         <div className="bg-white min-h-screen">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+            />
             {/* Hero Section */}
             <section className="bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">

@@ -100,10 +100,10 @@ export default function CompressPDFTool() {
                 {/* Header */}
                 <div className="text-center mb-12">
                     <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent mb-4">
-                        🗜️ Compress PDF
+                        🗜️ Compress PDF Online Free - QuickPDFTools
                     </h1>
                     <p className="text-gray-600 text-lg">
-                        Reduce PDF file size while maintaining quality
+                        Reduce PDF file size while maintaining quality with quick, secure PDF tools online.
                     </p>
                 </div>
 
@@ -320,7 +320,10 @@ export default function CompressPDFTool() {
 
                         <p className="mt-4">
                             This tool is useful for students submitting assignments, professionals sharing reports, and
-                            anyone who wants faster PDF uploads.
+                            anyone who wants faster PDF uploads. You can also
+                            <a href="/merge-pdf" className="text-blue-600 hover:underline"> merge PDF files online</a>
+                            or <a href="/split-pdf" className="text-blue-600 hover:underline">split PDF documents</a>
+                            with our free PDF tools.
                         </p>
                     </div>
                 </div>

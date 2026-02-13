@@ -1,25 +1,51 @@
 
 import { Metadata } from "next";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
     title: "About Us | " + SITE_NAME,
-    description: "Learn about the team and mission behind " + SITE_NAME + ".",
+    description: "Learn about the team, mission, and product focus behind QuickPDFTools.",
+    alternates: {
+        canonical: `${SITE_URL}/about-us`,
+    },
 };
 
 export default function AboutUsPage() {
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "About Us",
+                item: `${SITE_URL}/about-us`,
+            },
+        ],
+    };
+
     return (
         <div className="bg-white min-h-screen py-12 md:py-20">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+            />
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">About Quick PDF Tools</h1>
+                <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">About QuickPDFTools</h1>
 
                 <div className="prose prose-lg prose-blue text-gray-700 max-w-none space-y-6">
                     <p className="text-lg leading-relaxed">
-                        Quick PDF Tools was created with one simple goal: to make working with PDF documents easy, fast, and accessible for everyone. We understand that not everyone has access to expensive software or technical knowledge, yet many people need simple tools to manage their documents in daily life.
+                        QuickPDFTools was created with one simple goal: to make working with PDF documents easy, fast, and accessible for everyone. We understand that not everyone has access to expensive software or technical knowledge, yet many people need simple tools to manage their documents in daily life.
                     </p>
 
                     <p className="text-lg leading-relaxed">
-                        Our platform provides a collection of online PDF tools that help users compress, merge, split, and convert PDF files directly from their browser. Whether you are a student submitting assignments, a professional sharing reports, or a developer managing documentation, Quick PDF Tools is designed to support your workflow without unnecessary complexity.
+                        Our platform provides a collection of online PDF tools that help users compress, merge, split, and convert PDF files directly from their browser. Whether you are a student submitting assignments, a professional sharing reports, or a developer managing documentation, QuickPDFTools is designed to support your workflow without unnecessary complexity.
                     </p>
 
                     <p className="text-lg leading-relaxed">
@@ -28,7 +54,7 @@ export default function AboutUsPage() {
 
                     <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Our Purpose</h2>
                     <p className="text-lg leading-relaxed">
-                        The purpose of Quick PDF Tools is to provide reliable and practical document solutions for everyday use. We aim to reduce the time and effort people spend managing PDF files by offering tools that work directly online. Our services are designed to be helpful, lightweight, and accessible across all devices, including desktops, tablets, and mobile phones.
+                        The purpose of QuickPDFTools is to provide reliable and practical document solutions for everyday use. We aim to reduce the time and effort people spend managing PDF files by offering tools that work directly online. Our services are designed to be helpful, lightweight, and accessible across all devices, including desktops, tablets, and mobile phones.
                     </p>
 
                     <p className="text-lg leading-relaxed">
@@ -37,15 +63,15 @@ export default function AboutUsPage() {
 
                     <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Privacy and User Safety</h2>
                     <p className="text-lg leading-relaxed">
-                        User privacy is very important to us. Files uploaded to Quick PDF Tools are processed securely and are not stored permanently on our servers. Uploaded documents are automatically removed after processing to protect user data and confidentiality.
+                        User privacy is very important to us. Files uploaded to QuickPDFTools are processed securely and are not stored permanently on our servers. Uploaded documents are automatically removed after processing to protect user data and confidentiality.
                     </p>
 
                     <p className="text-lg leading-relaxed">
                         We do not analyze, share, or misuse user files. Our platform is designed to respect user privacy while providing reliable functionality.
                     </p>
 
-                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Who Can Use Quick PDF Tools</h2>
-                    <p className="text-lg leading-relaxed">Quick PDF Tools is suitable for:</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Who Can Use QuickPDFTools</h2>
+                    <p className="text-lg leading-relaxed">QuickPDFTools is suitable for:</p>
                     <ul className="list-disc pl-6 space-y-2">
                         <li>Students working on assignments and projects</li>
                         <li>Teachers and educators preparing documents</li>
@@ -64,7 +90,7 @@ export default function AboutUsPage() {
                     </p>
 
                     <p className="text-lg leading-relaxed">
-                        Quick PDF Tools is continuously evolving, and we plan to add more features and improvements to better serve our users in the future.
+                        QuickPDFTools is continuously evolving, and we plan to add more features and improvements to better serve our users in the future.
                     </p>
 
                     <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Contact and Feedback</h2>

@@ -11,4 +11,4 @@ Allow: /_next/image/
 Disallow: /api/
 
 # Sitemap
-Sitemap: https://quickpdftools.in/sitemap.xml
+Sitemap: https://www.quickpdftools.in/sitemap.xml

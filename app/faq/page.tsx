@@ -2,17 +2,40 @@
 import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { SITE_NAME, SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
-    title: 'Frequently Asked Questions (FAQ) - PDFMasterTools',
-    description: 'Find answers to common questions about PDFMasterTools using our comprehensive FAQ. learn about file security, limits, and how to use our free PDF tools.',
+    title: `Frequently Asked Questions (FAQ) | ${SITE_NAME}`,
+    description: 'Find answers to common questions about QuickPDFTools, including security, file limits, and how to use our free PDF tools.',
+    alternates: {
+        canonical: `${SITE_URL}/faq`,
+    },
 };
 
 export default function FAQPage() {
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "FAQ",
+                item: `${SITE_URL}/faq`,
+            },
+        ],
+    };
+
     const faqs = [
         {
-            question: "Is PDFMasterTools really free?",
-            answer: "Yes, PDFMasterTools is completely free to use. You do not need to register, create an account, or pay for any subscription to use our basic tools."
+            question: "Is QuickPDFTools really free?",
+            answer: "Yes, QuickPDFTools is completely free to use. You do not need to register, create an account, or pay for any subscription to use our basic tools."
         },
         {
             question: "Are my files safe?",
@@ -23,7 +46,7 @@ export default function FAQPage() {
             answer: "Currently, we support files up to 50MB for most tools. This ensures fast processing times and optimal performance for all users."
         },
         {
-            question: "Can I use PDFMasterTools on my phone?",
+            question: "Can I use QuickPDFTools on my phone?",
             answer: "Yes! Our website is fully responsive and works great on smartphones, tablets, and desktop computers. You can manage your documents on the go."
         },
         {
@@ -46,6 +69,10 @@ export default function FAQPage() {
 
     return (
         <div className="bg-gray-50 min-h-screen py-16">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+            />
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">

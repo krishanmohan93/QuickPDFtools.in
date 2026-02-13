@@ -1,9 +1,12 @@
 import { Metadata } from 'next';
-import { SITE_NAME } from '@/lib/constants';
+import { SITE_NAME, SITE_URL } from '@/lib/constants';
 
 export const metadata: Metadata = {
-    title: `${SITE_NAME} Blog – PDF Guides, Tutorials & Document Tips`,
-    description: 'Expert guides, tutorials, and tips on PDF management, document security, file conversion, and productivity tools. Learn how to work smarter with digital documents.',
+    title: `Blog - PDF Guides, Tutorials & Document Tips | ${SITE_NAME}`,
+    description: 'Expert guides, tutorials, and tips on PDF management, document security, file conversion, and productivity tools.',
+    alternates: {
+        canonical: `${SITE_URL}/blog`,
+    },
 };
 
 export default function BlogLayout({

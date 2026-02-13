@@ -157,10 +157,10 @@ export default function SplitPDFTool() {
                 {/* Header */}
                 <div className="text-center mb-12">
                     <h1 className="text-5xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent mb-4">
-                        ✂️ Split PDF
+                        ✂️ Split PDF Files Easily with QuickPDFTools
                     </h1>
                     <p className="text-gray-600 text-lg">
-                        Extract pages from your PDF document
+                        Split PDF documents into pages or ranges using fast, free PDF tools.
                     </p>
                 </div>
 
@@ -279,9 +279,9 @@ export default function SplitPDFTool() {
                                         <button
                                             key={pageNum}
                                             onClick={() => togglePage(pageNum)}
-                                            className={`aspect-square rounded-lg border-2 font-semibold transition-all ${selectedPages.includes(pageNum)
-                                                ? "border-green-500 bg-green-500 text-white"
-                                                : "border-gray-300 hover:border-green-400 hover:bg-green-50"
+                                            className={`aspect-square rounded-lg border-2 font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-green-400/40 ${selectedPages.includes(pageNum)
+                                                ? "border-green-500 bg-green-500 text-white shadow-sm"
+                                                : "border-gray-300 bg-white text-gray-900 hover:border-green-400 hover:bg-green-50 hover:text-gray-900 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-100 dark:hover:border-emerald-400 dark:hover:bg-emerald-500/20 dark:hover:text-emerald-100"
                                                 }`}
                                         >
                                             {pageNum}
@@ -384,7 +384,7 @@ export default function SplitPDFTool() {
                         {!isProcessing && (
                             <button
                                 onClick={splitPDF}
-                                className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white text-xl font-bold py-6 rounded-2xl hover:from-green-700 hover:to-teal-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
+                                className="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 text-white text-xl font-bold py-6 rounded-2xl border border-emerald-300/40 shadow-2xl shadow-emerald-500/30 hover:from-emerald-600 hover:via-green-600 hover:to-teal-600 hover:shadow-emerald-500/50 transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-400/40"
                             >
                                 ✂️ Split PDF
                             </button>
@@ -427,7 +427,9 @@ export default function SplitPDFTool() {
                         </ul>
 
                         <p className="mt-4">
-                            This tool saves time and keeps your documents organized.
+                            This tool saves time and keeps your documents organized. For related tasks, you can
+                            <a href="/merge-pdf" className="text-blue-600 hover:underline"> merge PDF files online</a>
+                            or <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDF documents</a>.
                         </p>
                     </div>
                 </div>

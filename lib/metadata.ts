@@ -25,9 +25,9 @@ const TOOL_KEYWORDS = {
 
 // Tool descriptions mapping
 const TOOL_DESCRIPTIONS = {
-    "merge-pdf": "Merge multiple PDF files into one document online for free. Combine PDFs easily with our fast and secure PDF merger tool.",
-    "split-pdf": "Split PDF files into separate pages or documents online for free. Extract specific pages from your PDF with our PDF splitter tool.",
-    "compress-pdf": "Compress PDF files to reduce size without losing quality online for free. Optimize your PDFs with our PDF compressor tool.",
+    "merge-pdf": "Merge multiple PDF files into one document online. Combine PDFs in the order you choose with a fast, secure PDF merger.",
+    "split-pdf": "Split PDF files into separate pages or documents online. Extract specific pages or ranges with a simple PDF splitter.",
+    "compress-pdf": "Compress PDF files to reduce size while keeping quality. Optimize your PDFs for sharing and storage online.",
     "pdf-to-word": "Convert PDF files to editable Word documents online for free. Transform PDFs to DOCX format with our PDF to Word converter.",
     "word-to-pdf": "Convert Word documents to PDF format online for free. Transform DOCX files to PDF with our Word to PDF converter.",
     "pdf-to-jpg": "Convert PDF pages to JPG images online for free. Extract images from PDF files with our PDF to JPG converter.",
@@ -47,9 +47,9 @@ const TOOL_DESCRIPTIONS = {
 
 // Tool titles mapping
 const TOOL_TITLES = {
-    "merge-pdf": "Merge PDF Files Online - Free PDF Merger Tool",
-    "split-pdf": "Split PDF Files Online - Free PDF Splitter Tool",
-    "compress-pdf": "Compress PDF Online - Free PDF Compressor Tool",
+    "merge-pdf": "Merge PDF Online Free - Combine Files Securely",
+    "split-pdf": "Split PDF Online Free - Extract Pages Easily",
+    "compress-pdf": "Compress PDF Online Free - Reduce File Size",
     "pdf-to-word": "Convert PDF to Word Online - Free PDF to DOCX Converter",
     "word-to-pdf": "Convert Word to PDF Online - Free DOCX to PDF Converter",
     "pdf-to-jpg": "Convert PDF to JPG Online - Free PDF to Image Converter",
@@ -68,8 +68,12 @@ const TOOL_TITLES = {
 };
 
 export function generateToolMetadata(toolId: string): Metadata {
-    const title = TOOL_TITLES[toolId as keyof typeof TOOL_TITLES] || `${SITE_NAME} - Professional PDF Tools`;
-    const description = TOOL_DESCRIPTIONS[toolId as keyof typeof TOOL_DESCRIPTIONS] || "Professional PDF tools online for free";
+    const baseTitle =
+        TOOL_TITLES[toolId as keyof typeof TOOL_TITLES] || "Professional PDF Tools";
+    const title = baseTitle.endsWith(`| ${SITE_NAME}`) ? baseTitle : `${baseTitle} | ${SITE_NAME}`;
+    const description =
+        TOOL_DESCRIPTIONS[toolId as keyof typeof TOOL_DESCRIPTIONS] ||
+        "Use professional PDF tools online to convert, merge, split, and compress files with ease.";
     const keywords = TOOL_KEYWORDS[toolId as keyof typeof TOOL_KEYWORDS] || "pdf tools, convert pdf, free pdf tools online";
 
     return {
@@ -104,13 +108,14 @@ export function generateToolMetadata(toolId: string): Metadata {
 }
 
 export function generateHomeMetadata(): Metadata {
+    const title = `Free PDF Tools Online - Edit, Convert & Merge | ${SITE_NAME}`;
     return {
-        title: `${SITE_NAME} - Free PDF Tools Online | Edit, Convert, Merge PDFs`,
-        description: "Professional PDF tools online for free. Edit PDFs with same font, convert PDF to Word/Excel/PPT, merge, split, compress PDFs. Fast, secure, and easy to use.",
+        title,
+        description: "QuickPDFTools provides PDF tools online to merge, split, compress, and convert files fast. Secure, free, and easy to use.",
         keywords: "edit pdf online, pdf editor same font, free pdf tools online, compress pdf, merge pdf, pdf converter, split pdf",
         openGraph: {
-            title: `${SITE_NAME} - Free PDF Tools Online | Edit, Convert, Merge PDFs`,
-            description: "Professional PDF tools online for free. Edit PDFs with same font, convert PDF to Word/Excel/PPT, merge, split, compress PDFs.",
+            title,
+            description: "All-in-one PDF tools to edit, convert, merge, split, and compress files online.",
             url: SITE_URL,
             siteName: SITE_NAME,
             type: "website",
@@ -125,8 +130,8 @@ export function generateHomeMetadata(): Metadata {
         },
         twitter: {
             card: "summary_large_image",
-            title: `${SITE_NAME} - Free PDF Tools Online | Edit, Convert, Merge PDFs`,
-            description: "Professional PDF tools online for free. Edit PDFs with same font, convert PDF to Word/Excel/PPT, merge, split, compress PDFs.",
+            title,
+            description: "All-in-one PDF tools to edit, convert, merge, split, and compress files online.",
             images: [`${SITE_URL}/logo.png`],
         },
         alternates: {

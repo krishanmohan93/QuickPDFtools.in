@@ -44,14 +44,16 @@ export default function Footer() {
                         </ul>
                     </div>
 
-                    {/* Company */}
+                    {/* Quick Links */}
                     <div>
-                        <h3 className="text-white font-semibold mb-4">Company</h3>
+                        <h3 className="text-white font-semibold mb-4">Quick Links</h3>
                         <ul className="space-y-2">
+                            <li><Link href="/#tools" className="text-sm text-gray-300 hover:text-white transition-colors">Tools</Link></li>
+                            <li><Link href="/merge-pdf" className="text-sm text-gray-300 hover:text-white transition-colors">Merge PDF</Link></li>
                             <li><Link href="/about-us" className="text-sm text-gray-300 hover:text-white transition-colors">About Us</Link></li>
-                            <li><Link href="/contact-us" className="text-sm text-gray-300 hover:text-white transition-colors">Contact</Link></li>
                             <li><Link href="/blog" className="text-sm text-gray-300 hover:text-white transition-colors">Blog</Link></li>
                             <li><Link href="/faq" className="text-sm text-gray-300 hover:text-white transition-colors">FAQ</Link></li>
+                            <li><Link href="/contact-us" className="text-sm text-gray-300 hover:text-white transition-colors">Contact</Link></li>
                         </ul>
                     </div>
 

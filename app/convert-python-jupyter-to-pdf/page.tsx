@@ -118,6 +118,25 @@ export default function PythonJupyterToPDFPage() {
         ]
     };
 
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "Python and Jupyter to PDF",
+                item: `${SITE_URL}/convert-python-jupyter-to-pdf`,
+            },
+        ],
+    };
+
     return (
         <>
             {/* Structured Data */}
@@ -128,6 +147,10 @@ export default function PythonJupyterToPDFPage() {
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
 
             <div className="min-h-screen bg-gray-50">
