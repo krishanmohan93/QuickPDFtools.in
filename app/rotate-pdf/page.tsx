@@ -1,7 +1,7 @@
 import { Metadata } from "next";
-import ToolPage from "@/components/ToolPage";
+import RotatePDFTool from "@/components/RotatePDFTool";
 import { generateToolMetadata } from "@/lib/metadata";
-import { ALLOWED_FILE_TYPES, SITE_URL } from "@/lib/constants";
+import { SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = generateToolMetadata("rotate-pdf");
 
@@ -31,20 +31,43 @@ export default function RotatePDFPage() {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
-            <ToolPage
-                toolId="rotate-pdf"
-                toolName="Rotate PDF"
-                toolDescription="Rotate pages in your PDF document"
-                acceptedFileTypes={{ pdf: ALLOWED_FILE_TYPES.pdf }}
-                apiEndpoint="/api/rotate-pdf"
-                outputFileName="rotated.pdf"
-                instructions={[
-                    "Upload your PDF file",
-                    "Pages will be rotated 90 degrees clockwise",
-                    "Click 'Process File' to rotate",
-                    "Download your rotated PDF",
-                ]}
-            />
+            <RotatePDFTool />
+
+            {/* SEO Content Section */}
+            <section className="bg-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                    <div className="bg-white rounded-2xl p-8 border-2 border-gray-200">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                            Rotate PDF Pages Online
+                        </h2>
+                        <div className="prose max-w-none text-gray-700 space-y-4">
+                            <p>
+                                Rotate PDF pages to fix orientation issues, flip scanned documents, or adjust page
+                                layouts for presentations. Choose a direction and apply rotation to all pages or
+                                specific ranges.
+                            </p>
+
+                            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+                                How to Rotate a PDF
+                            </h3>
+                            <ul className="list-disc pl-6 space-y-2">
+                                <li>Upload your PDF file</li>
+                                <li>Select the rotation direction</li>
+                                <li>Apply rotation to all pages or a range</li>
+                                <li>Download the rotated PDF</li>
+                            </ul>
+
+                            <p className="mt-4">
+                                You can also{" "}
+                                <a href="/reorder-pdf" className="text-blue-600 hover:underline">reorder pages</a>,{" "}
+                                <a href="/merge-pdf" className="text-blue-600 hover:underline">merge PDFs</a>, or{" "}
+                                <a href="/compress-pdf" className="text-blue-600 hover:underline">compress files</a>{" "}
+                                after rotation.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </>
     );
 }

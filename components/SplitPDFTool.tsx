@@ -181,6 +181,21 @@ export default function SplitPDFTool() {
                     </div>
                 )}
 
+                {!file && (
+                    <div className="mt-8 bg-teal-50 rounded-2xl p-8 border-2 border-teal-200">
+                        <h3 className="text-xl font-bold text-teal-900 mb-4">
+                            📖 How to use:
+                        </h3>
+                        <ol className="space-y-2 text-teal-800">
+                            <li>1. Upload a PDF file</li>
+                            <li>2. Choose split mode (Pages, Range, or Interval)</li>
+                            <li>3. Configure your selection</li>
+                            <li>4. Click "Split PDF" to extract</li>
+                            <li>5. Files will download automatically</li>
+                        </ol>
+                    </div>
+                )}
+
                 {/* File Info & Split Options */}
                 {file && totalPages > 0 && (
                     <>
@@ -392,20 +407,6 @@ export default function SplitPDFTool() {
                     </>
                 )}
 
-                {/* Instructions */}
-                <div className="mt-12 bg-teal-50 rounded-2xl p-8 border-2 border-teal-200">
-                    <h3 className="text-xl font-bold text-teal-900 mb-4">
-                        📖 How to use:
-                    </h3>
-                    <ol className="space-y-2 text-teal-800">
-                        <li>1. Upload a PDF file</li>
-                        <li>2. Choose split mode (Pages, Range, or Interval)</li>
-                        <li>3. Configure your selection</li>
-                        <li>4. Click "Split PDF" to extract</li>
-                        <li>5. Files will download automatically</li>
-                    </ol>
-                </div>
-
                 {/* SEO Content Section */}
                 <div className="mt-12 bg-white rounded-2xl p-8 border-2 border-gray-200">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">
@@ -429,7 +430,7 @@ export default function SplitPDFTool() {
                         <p className="mt-4">
                             This tool saves time and keeps your documents organized. For related tasks, you can
                             <a href="/merge-pdf" className="text-blue-600 hover:underline"> merge PDF files online</a>
-                            or <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDF documents</a>.
+                             <br/> or <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDF documents</a>.
                         </p>
                     </div>
                 </div>

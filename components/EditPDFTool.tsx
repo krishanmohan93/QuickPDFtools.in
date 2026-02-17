@@ -47,12 +47,100 @@ export default function EditPDFTool() {
   const [isScannedPDF, setIsScannedPDF] = useState(false);
   const [isLoadingText, setIsLoadingText] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [ocrEnabled, setOcrEnabled] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{
+    type: 'success' | 'error' | 'warning' | 'info';
+    text: string;
+  } | null>(null);
+  const [downloadInfo, setDownloadInfo] = useState<{ url: string; name: string } | null>(null);
+  const MERGE_TEXT_ITEMS = true;
+  const [zoomInput, setZoomInput] = useState(() => `${Math.round(1.5 * 100)}%`);
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  const pushStatus = (type: 'success' | 'error' | 'warning' | 'info', text: string) => {
+    setStatusMessage({ type, text });
+  };
+
+  const clearDownloadInfo = () => {
+    if (downloadInfo?.url) {
+      URL.revokeObjectURL(downloadInfo.url);
+    }
+    setDownloadInfo(null);
+  };
+
+  const triggerDownload = (url: string, name: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const buildSafeFilename = (originalName: string) => {
+    const baseName = originalName.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9\-_\.]/g, '_');
+    const trimmed = baseName.length > 60 ? baseName.slice(0, 60) : baseName;
+    return `${trimmed}_edited.pdf`;
+  };
+
+  const sampleCoverColor = (item: TextItem) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return undefined;
+    const width = Number.isFinite(item.width) ? item.width : 0;
+    const height = Number.isFinite(item.height) ? item.height : 0;
+    const originX = Number.isFinite(item.x) ? item.x : 0;
+    const originY = Number.isFinite(item.y) ? item.y : 0;
+    const sampleX = Math.min(
+      Math.max(Math.round(originX + width * 0.5), 0),
+      Math.max(canvas.width - 1, 0)
+    );
+    const sampleY = Math.min(
+      Math.max(Math.round(originY + height * 0.5), 0),
+      Math.max(canvas.height - 1, 0)
+    );
+
+    try {
+      const data = ctx.getImageData(sampleX, sampleY, 1, 1).data;
+      if (!data || data.length < 3) return undefined;
+      const toHex = (value: number) => value.toString(16).padStart(2, '0');
+      return `#${toHex(data[0])}${toHex(data[1])}${toHex(data[2])}`;
+    } catch (error) {
+      console.warn('Could not sample cover color:', error);
+      return undefined;
+    }
+  };
+
+  const clampZoom = (value: number) => Math.min(Math.max(value, 50), 300);
+
+  const applyZoomScale = (nextScale: number) => {
+    const clampedScale = Math.min(Math.max(nextScale, 0.5), 3);
+    setScale(clampedScale);
+    setZoomInput(`${Math.round(clampedScale * 100)}%`);
+    if (pdfDoc) {
+      renderPage(pdfDoc, currentPage);
+      detectText(pdfDoc, currentPage);
+    }
+  };
+
+  const commitZoomInput = () => {
+    const cleaned = zoomInput.trim().replace('%', '');
+    const parsed = Number(cleaned);
+    if (!Number.isFinite(parsed)) {
+      setZoomInput(`${Math.round(scale * 100)}%`);
+      return;
+    }
+    const clamped = clampZoom(parsed);
+    applyZoomScale(clamped / 100);
+  };
 
   /**
    * Handle file upload and initial PDF processing with memory management
@@ -61,14 +149,14 @@ export default function EditPDFTool() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile || selectedFile.type !== 'application/pdf') {
-      alert('Please select a valid PDF file');
+      pushStatus('error', 'Please select a valid PDF file.');
       return;
     }
 
     // Check file size limits (50MB for large PDFs)
     const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     if (selectedFile.size > MAX_FILE_SIZE) {
-      alert('File is too large. Please select a PDF smaller than 50MB.');
+      pushStatus('warning', 'File is too large. Please select a PDF smaller than 50MB.');
       return;
     }
 
@@ -76,6 +164,8 @@ export default function EditPDFTool() {
     setIsProcessing(true);
     setIsLoadingText(true);
     setLoadingProgress(0);
+    setStatusMessage(null);
+    clearDownloadInfo();
 
     try {
       setLoadingProgress(10);
@@ -136,14 +226,14 @@ export default function EditPDFTool() {
       // Provide specific error messages based on error type
       if (error instanceof Error) {
         if (error.message.includes('memory') || error.message.includes('out of memory')) {
-          alert('PDF is too large to process in browser. Try a smaller file or fewer pages.');
+          pushStatus('error', 'PDF is too large to process in browser. Try a smaller file or fewer pages.');
         } else if (error.message.includes('corrupt') || error.message.includes('invalid')) {
-          alert('PDF file appears to be corrupted. Please try a different file.');
+          pushStatus('error', 'PDF file appears to be corrupted. Please try a different file.');
         } else {
-          alert(`Failed to load PDF: ${error.message}`);
+          pushStatus('error', `Failed to load PDF: ${error.message}`);
         }
       } else {
-        alert('Failed to load PDF. Please try another file.');
+        pushStatus('error', 'Failed to load PDF. Please try another file.');
       }
     } finally {
       setIsProcessing(false);
@@ -188,13 +278,17 @@ export default function EditPDFTool() {
       if (!result.hasText) {
         // No text found - this is a scanned PDF
         setIsScannedPDF(true);
+        setOcrEnabled(false);
         console.warn('Scanned PDF detected - OCR not performed for faster loading');
         // Skip OCR for now - let user request it if needed
       } else {
-        // Text found, merge and display
-        const mergedItems = await worker.mergeTextItems(result.items, scale);
-        setTextItems(mergedItems);
-        addToHistory(mergedItems);
+        setIsScannedPDF(false);
+        setOcrEnabled(false);
+        // Text found. In Exact Mode, we avoid merging so we can map edits to
+        // the original PDF content stream operators precisely.
+        const itemsForEdit = MERGE_TEXT_ITEMS ? await worker.mergeTextItems(result.items, scale) : result.items;
+        setTextItems(itemsForEdit);
+        addToHistory(itemsForEdit);
       }
     } catch (error) {
       console.error('Error detecting text:', error);
@@ -209,17 +303,27 @@ export default function EditPDFTool() {
    */
   const performOCR = async (pdf: any, pageNum: number) => {
     try {
+      setIsOcrProcessing(true);
       const worker = getWorker();
       const ocrItems = await worker.performOCR(pdf, pageNum, scale);
 
-      setTextItems(ocrItems);
-      addToHistory(ocrItems);
+      const ocrItemsWithMeta = ocrItems.map((item: TextItem) => ({
+        ...item,
+        isOcr: true,
+        originalText: item.originalText ?? item.text,
+      }));
+
+      setTextItems(ocrItemsWithMeta);
+      addToHistory(ocrItemsWithMeta);
+      setOcrEnabled(true);
 
       // Show user warning about OCR quality
-      alert('This PDF appears to be image-based. OCR has been performed, but results may vary. You can still edit the recognized text.');
+      pushStatus('info', 'OCR completed. This PDF is image-based, so edits will be applied as a text layer.');
     } catch (error) {
       console.error('OCR Error:', error);
-      alert('OCR processing failed. This PDF may be image-based and cannot be edited as text.');
+      pushStatus('error', 'OCR processing failed. This PDF may be image-based and cannot be edited as text.');
+    } finally {
+      setIsOcrProcessing(false);
     }
   };
 
@@ -346,9 +450,9 @@ export default function EditPDFTool() {
       // Provide specific error handling for page navigation
       if (error instanceof Error) {
         if (error.message.includes('memory') || error.message.includes('out of memory')) {
-          alert('Page loading failed due to memory constraints. Try refreshing or using a smaller PDF.');
+          pushStatus('error', 'Page loading failed due to memory constraints. Try refreshing or using a smaller PDF.');
         } else {
-          alert(`Failed to load page ${pageNum}. ${error.message}`);
+          pushStatus('error', `Failed to load page ${pageNum}. ${error.message}`);
         }
       }
     } finally {
@@ -361,20 +465,12 @@ export default function EditPDFTool() {
    */
   const handleZoomIn = () => {
     const newScale = Math.min(scale + 0.25, 3);
-    setScale(newScale);
-    if (pdfDoc) {
-      renderPage(pdfDoc, currentPage);
-      detectText(pdfDoc, currentPage);
-    }
+    applyZoomScale(newScale);
   };
 
   const handleZoomOut = () => {
     const newScale = Math.max(scale - 0.25, 0.5);
-    setScale(newScale);
-    if (pdfDoc) {
-      renderPage(pdfDoc, currentPage);
-      detectText(pdfDoc, currentPage);
-    }
+    applyZoomScale(newScale);
   };
 
   /**
@@ -383,11 +479,13 @@ export default function EditPDFTool() {
    */
   const handleExport = async () => {
     if (!file) {
-      alert('No PDF loaded');
+      pushStatus('error', 'No PDF loaded.');
       return;
     }
 
     setIsProcessing(true);
+    setStatusMessage(null);
+    clearDownloadInfo();
 
     try {
       console.log('🚀 Starting PDF export...');
@@ -396,76 +494,91 @@ export default function EditPDFTool() {
       const edits = textItems.filter(item => item.text !== item.originalText);
 
       if (edits.length === 0) {
-        alert('No text changes detected. Please make some edits before exporting.');
+        pushStatus('warning', 'No text changes detected. Please make some edits before exporting.');
         return;
       }
 
       console.log(`📝 Found ${edits.length} text edits`);
 
-      // Convert PDF to base64
-      const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const usesOcr = edits.some(edit => edit.isOcr);
+      if (isScannedPDF && !usesOcr) {
+        pushStatus('error', 'This PDF is image-based. Run OCR to enable editing before exporting.');
+        return;
+      }
 
-      // Prepare edit data for API
-      const editData = edits.map(edit => ({
-        text: edit.text,
-        x: edit.x / scale, // Convert from canvas to PDF coordinates
-        y: edit.y / scale,
-        fontSize: edit.fontSize / scale,
-        fontName: edit.fontName,
-        color: edit.color,
-        pageNumber: edit.pageNumber,
-      }));
+      const editData = edits.map(edit => {
+        const hasSingleSource =
+          typeof edit.sourceIndex === 'number' &&
+          (!edit.sourceIndexes || edit.sourceIndexes.length <= 1);
+        return {
+          text: edit.text,
+          originalText: edit.originalText,
+          sourceIndex: hasSingleSource ? edit.sourceIndex : undefined,
+          x: typeof edit.x === 'number' ? edit.x / scale : undefined,
+          y: typeof edit.y === 'number' ? edit.y / scale : undefined,
+          width: typeof edit.width === 'number' ? edit.width / scale : undefined,
+          height: typeof edit.height === 'number' ? edit.height / scale : undefined,
+          fontSize: typeof edit.fontSize === 'number' ? edit.fontSize / scale : undefined,
+          fontName: edit.fontName,
+          fontWeight: edit.fontWeight,
+          fontStyle: edit.fontStyle,
+          color: edit.color,
+          coverColor: sampleCoverColor(edit),
+          pageNumber: edit.pageNumber,
+          transform: edit.transform,
+        };
+      });
 
-      // Call API
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('edits', JSON.stringify(editData));
+      formData.append('mode', 'mixed');
+      formData.append('allowFallback', 'true');
+
       const response = await fetch('/api/edit-pdf', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pdfBase64: base64,
-          edits: editData,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Export failed');
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const errorPayload = await response.json();
+          throw new Error(errorPayload.error || 'Export failed');
+        }
+        throw new Error('Export failed');
       }
 
-      const result = await response.json();
+      const editMode = response.headers.get('X-Edit-Mode');
+      const warning = response.headers.get('X-Edit-Warning');
 
-      // Download the edited PDF
-      const editedPdfBytes = Uint8Array.from(atob(result.pdfBase64), c => c.charCodeAt(0));
-      const blob = new Blob([editedPdfBytes], { type: 'application/pdf' });
+      const blob = await response.blob();
+      if (blob.size < 1000) {
+        throw new Error('Export failed: generated PDF was empty.');
+      }
 
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
+      const safeName = buildSafeFilename(file.name);
+      setDownloadInfo({ url, name: safeName });
+      try {
+        triggerDownload(url, safeName);
+      } catch (downloadError) {
+        console.warn('Download trigger failed, waiting for manual download.', downloadError);
+      }
 
-      // Safe filename
-      const originalName = file.name;
-      const baseName = originalName.replace(/\.pdf$/i, '').replace(/[^a-zA-Z0-9\-_\.]/g, '_');
-      link.download = `${baseName}_edited.pdf`;
-
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 100);
-
-      alert('✅ PDF edited successfully!\n\n' +
-            '✓ Text changes applied\n' +
-            '✓ Fonts and colors preserved\n' +
-            '✓ Adobe Acrobat compatible');
+      if (warning) {
+        pushStatus('warning', warning);
+      } else if (editMode === 'overlay') {
+        pushStatus('success', 'PDF edited successfully using professional overlay placement.');
+      } else if (editMode === 'mixed') {
+        pushStatus('success', 'PDF edited successfully. Exact edits applied where possible.');
+      } else {
+        pushStatus('success', 'PDF edited successfully with exact in-place replacements.');
+      }
 
     } catch (error) {
       console.error('❌ Export failed:', error);
-      alert('❌ Export failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      pushStatus('error', 'Export failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsProcessing(false);
     }
@@ -520,6 +633,10 @@ export default function EditPDFTool() {
     setSelectedTextId(null);
     setShowToolbar(false);
     setIsScannedPDF(false);
+    setOcrEnabled(false);
+    setIsOcrProcessing(false);
+    setStatusMessage(null);
+    clearDownloadInfo();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -537,6 +654,14 @@ export default function EditPDFTool() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (downloadInfo?.url) {
+        URL.revokeObjectURL(downloadInfo.url);
+      }
+    };
+  }, [downloadInfo]);
 
   /**
    * Memory optimization: Periodic cleanup for large PDFs
@@ -584,56 +709,96 @@ export default function EditPDFTool() {
   }, [historyIndex, history]);
 
   return (
-    <div className="w-full">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-slate-50 py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+      <div className="text-center mb-10">
+        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+          Edit PDF Online
+        </h1>
+        <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto">
+          Edit PDF text directly while preserving the original font, size, color, and layout.
+          Fast, secure, and professional results suitable for certificates and official documents.
+        </p>
+      </div>
+      {statusMessage && (
+        <div
+          className={`mb-6 rounded-lg border p-4 ${
+            statusMessage.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              : statusMessage.type === 'error'
+              ? 'bg-red-50 border-red-200 text-red-900'
+              : statusMessage.type === 'warning'
+              ? 'bg-amber-50 border-amber-200 text-amber-900'
+              : 'bg-blue-50 border-blue-200 text-blue-900'
+          }`}
+        >
+          <p className="text-sm">{statusMessage.text}</p>
+        </div>
+      )}
       {/* Upload Section */}
       {!file && (
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-xl border-2 border-dashed border-indigo-200 p-16 text-center hover:border-indigo-400 hover:shadow-2xl transition-all duration-300 group">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            onChange={handleFileChange}
-            className="hidden"
-            id="pdf-upload"
-          />
-          <label
-            htmlFor="pdf-upload"
-            className="cursor-pointer flex flex-col items-center"
-          >
-            <div className="bg-indigo-100 rounded-full p-6 mb-6 group-hover:bg-indigo-200 transition-colors">
-              <svg
-                className="w-12 h-12 text-indigo-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+        <>
+          <div className="bg-white rounded-2xl shadow-xl border border-indigo-100 p-8 sm:p-12 mb-8">
+            <div className="max-w-3xl mx-auto">
+              <div className="border-2 border-dashed border-indigo-200 rounded-2xl p-10 sm:p-12 text-center hover:border-indigo-400 transition-all duration-300 group bg-gradient-to-br from-indigo-50 to-white">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="pdf-upload"
                 />
-              </svg>
+                <label
+                  htmlFor="pdf-upload"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <div className="bg-indigo-100 rounded-full p-5 mb-6 group-hover:bg-indigo-200 transition-colors">
+                    <svg
+                      className="w-10 h-10 text-indigo-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                  </div>
+                  <span className="text-2xl font-bold text-gray-900 mb-2">
+                    Upload PDF to Edit
+                  </span>
+                  <span className="text-gray-600 mb-4">
+                    Click to browse or drag and drop your PDF file (max 50MB)
+                  </span>
+                  <div className="flex items-center justify-center gap-2 text-sm text-indigo-600 font-medium">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    Supports text-based and scanned PDFs with OCR
+                  </div>
+                </label>
+              </div>
             </div>
-            <span className="text-2xl font-bold text-gray-800 mb-3">
-              Upload PDF to Edit
-            </span>
-            <span className="text-gray-600 mb-4">
-              Click to browse or drag and drop your PDF file (max 50MB)
-            </span>
-            <div className="flex items-center gap-2 text-sm text-indigo-600 font-medium">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              Supports text-based and scanned PDFs with OCR
-            </div>
-          </label>
-        </div>
+          </div>
+
+          <div className="bg-indigo-50 rounded-2xl border border-indigo-200 p-8">
+            <h2 className="text-xl font-bold text-indigo-900 mb-4">How to edit a PDF</h2>
+            <ol className="space-y-2 text-indigo-800">
+              <li>1. Upload your PDF file</li>
+              <li>2. Click any text to edit it inline</li>
+              <li>3. Download the edited PDF</li>
+            </ol>
+          </div>
+        </>
       )}
 
       {/* Editor Interface */}
       {file && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Toolbar */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 flex items-center justify-between flex-wrap gap-6">
             <div className="flex items-center gap-3">
@@ -670,19 +835,30 @@ export default function EditPDFTool() {
                   title="Zoom Out"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7m16 0H4" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM8 10h6" />
                   </svg>
                 </button>
-                <span className="px-3 py-2 bg-white text-gray-700 rounded-md min-w-[80px] text-center font-medium">
-                  {Math.round(scale * 100)}%
-                </span>
+                <input
+                  value={zoomInput}
+                  onChange={(e) => setZoomInput(e.target.value)}
+                  onBlur={commitZoomInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      commitZoomInput();
+                    }
+                  }}
+                  className="px-3 py-2 bg-white text-gray-700 rounded-md min-w-[80px] text-center font-medium border border-transparent focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 outline-none"
+                  aria-label="Zoom percentage"
+                  inputMode="numeric"
+                />
                 <button
                   onClick={handleZoomIn}
                   className="p-2 text-gray-600 hover:text-gray-800 hover:bg-white rounded-md transition-all"
                   title="Zoom In"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6M7 10h6" />
                   </svg>
                 </button>
               </div>
@@ -732,7 +908,7 @@ export default function EditPDFTool() {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Download PDF
+                    Export PDF
                   </div>
                 )}
               </button>
@@ -749,6 +925,30 @@ export default function EditPDFTool() {
           </div>
 
           {/* Status Messages */}
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+            <p className="text-indigo-800 text-sm">
+              We apply exact in-place edits whenever possible. If the PDF font encoding or
+              kerning cannot be preserved, we automatically fall back to a professional overlay
+              that matches the original font style and background.
+            </p>
+          </div>
+
+          {downloadInfo && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-emerald-900 text-sm font-medium">Download ready</p>
+                <p className="text-emerald-800 text-xs">If the automatic download was blocked, use the button below.</p>
+              </div>
+              <a
+                href={downloadInfo.url}
+                download={downloadInfo.name}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-medium"
+              >
+                Download Edited PDF
+              </a>
+            </div>
+          )}
+
           {isLoadingText && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center gap-3">
@@ -773,9 +973,27 @@ export default function EditPDFTool() {
 
           {isScannedPDF && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-yellow-800 text-sm">
-                ⚠️ Scanned PDF detected. Using OCR for text detection. Results may vary.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-yellow-800 text-sm">
+                  ⚠️ Scanned PDF detected. Run OCR to enable editable text (creates a text layer on export).
+                </p>
+                <button
+                  onClick={() => {
+                    if (pdfDoc) {
+                      performOCR(pdfDoc, currentPage);
+                    }
+                  }}
+                  disabled={isOcrProcessing}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-medium"
+                >
+                  {isOcrProcessing ? 'Running OCR...' : 'Run OCR'}
+                </button>
+              </div>
+              {ocrEnabled && (
+                <p className="text-yellow-700 text-xs mt-2">
+                  OCR enabled. Edits will be exported as a text layer over the scanned image.
+                </p>
+              )}
             </div>
           )}
 
@@ -878,6 +1096,32 @@ export default function EditPDFTool() {
           </div>
         </div>
       )}
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: "🔒",
+              title: "Private & Secure",
+              description: "Your edits are processed securely. Files are not shared and are removed after processing.",
+            },
+            {
+              icon: "🎯",
+              title: "Font-Accurate",
+              description: "Text is edited in-place with original fonts and layout preserved for professional documents.",
+            },
+            {
+              icon: "⚡",
+              title: "Fast Results",
+              description: "Edit and download your PDF in seconds with no registration required.",
+            },
+          ].map((feature, index) => (
+            <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6 text-center shadow-sm">
+              <div className="text-3xl mb-3">{feature.icon}</div>
+              <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
+              <p className="text-sm text-gray-600">{feature.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,15 +1,15 @@
-# robots.txt for QuickPDFTools (Next.js SEO Safe)
-
 User-agent: *
 Allow: /
 
-# Allow Next.js required files
+# Specifically allow the Next.js static assets so Google can render the page
 Allow: /_next/static/
 Allow: /_next/image/
 
-# Block only API routes
+# Block API routes to save crawl budget
 Disallow: /api/
 
-# Sitemap
-Sitemap: https://quickpdftools.in/sitemap.xml
+# Optional: Block the main private next folder if you want, 
+# BUT keep the 'Allow' rules above for static files.
+# Disallow: /_next/
 
+Sitemap: https://quickpdftools.in/sitemap.xml

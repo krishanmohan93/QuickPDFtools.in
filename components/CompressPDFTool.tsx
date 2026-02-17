@@ -124,6 +124,21 @@ export default function CompressPDFTool() {
                     </div>
                 )}
 
+                {!file && (
+                    <div className="mt-8 bg-red-50 rounded-2xl p-8 border-2 border-red-200">
+                        <h3 className="text-xl font-bold text-red-900 mb-4">
+                            📖 How to use:
+                        </h3>
+                        <ol className="space-y-2 text-red-800">
+                            <li>1. Upload a PDF file</li>
+                            <li>2. Choose compression level (Low, Medium, or High)</li>
+                            <li>3. Click "Compress PDF"</li>
+                            <li>4. Wait for processing to complete</li>
+                            <li>5. Compressed file downloads automatically</li>
+                        </ol>
+                    </div>
+                )}
+
                 {/* File Info & Compression Options */}
                 {file && (
                     <>
@@ -281,20 +296,6 @@ export default function CompressPDFTool() {
                         <li>• Compression removes metadata and optimizes file structure</li>
                         <li>• Original file is never modified - you get a new compressed copy</li>
                     </ul>
-                </div>
-
-                {/* Instructions */}
-                <div className="mt-8 bg-red-50 rounded-2xl p-8 border-2 border-red-200">
-                    <h3 className="text-xl font-bold text-red-900 mb-4">
-                        📖 How to use:
-                    </h3>
-                    <ol className="space-y-2 text-red-800">
-                        <li>1. Upload a PDF file</li>
-                        <li>2. Choose compression level (Low, Medium, or High)</li>
-                        <li>3. Click "Compress PDF"</li>
-                        <li>4. Wait for processing to complete</li>
-                        <li>5. Compressed file downloads automatically</li>
-                    </ol>
                 </div>
 
                 {/* SEO Content Section */}

@@ -40,6 +40,7 @@ export default function JPGtoPDFPage() {
                 outputFileName="converted.pdf"
                 instructions={[
                     "Upload one or more JPG images",
+                    "Drag images to arrange the order",
                     "Images will be combined into a single PDF",
                     "Click 'Process Files' to convert",
                     "Download your PDF document",

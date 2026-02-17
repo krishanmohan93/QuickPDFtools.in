@@ -124,14 +124,6 @@ export const PDF_TOOLS = [
         color: "#EA580C",
     },
     {
-        id: "ppt-to-pdf",
-        name: "PPT to PDF",
-        description: "Convert PowerPoint to PDF format",
-        icon: "convert",
-        path: "/ppt-to-pdf",
-        color: "#2563EB",
-    },
-    {
         id: "protect-pdf",
         name: "Protect PDF",
         description: "Add password protection to your PDF",

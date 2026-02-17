@@ -1,20 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import DragDropUpload from "./DragDropUpload";
 
 export default function ExcelToPDFTool() {
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [isDragging, setIsDragging] = useState(false);
-
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (!selectedFile) return;
-
-        validateAndSetFile(selectedFile);
-    };
+    const [progress, setProgress] = useState(0);
 
     const validateAndSetFile = (selectedFile: File) => {
         // Validate file type
@@ -38,24 +32,10 @@ export default function ExcelToPDFTool() {
         setDownloadUrl(null);
     };
 
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
-
-        const droppedFile = e.dataTransfer.files[0];
-        if (droppedFile) {
-            validateAndSetFile(droppedFile);
-        }
-    };
-
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragging(false);
+    const handleFileSelect = (selectedFiles: File[]) => {
+        const selectedFile = selectedFiles[0];
+        if (!selectedFile) return;
+        validateAndSetFile(selectedFile);
     };
 
     const convertToPDF = async () => {
@@ -63,15 +43,28 @@ export default function ExcelToPDFTool() {
 
         setIsProcessing(true);
         setError(null);
+        setProgress(0);
+        let progressInterval: ReturnType<typeof setInterval> | null = null;
 
         try {
             const formData = new FormData();
             formData.append('file0', file);
 
+            progressInterval = setInterval(() => {
+                setProgress((prev) => {
+                    if (prev >= 90) return 90;
+                    return prev + Math.random() * 15;
+                });
+            }, 300);
+
             const response = await fetch('/api/excel-to-pdf', {
                 method: 'POST',
                 body: formData,
             });
+
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -81,10 +74,20 @@ export default function ExcelToPDFTool() {
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             setDownloadUrl(url);
+            setProgress(100);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = file.name.replace(/\.[^/.]+$/, '') + '.pdf';
+            link.click();
 
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to convert file');
+            setProgress(0);
         } finally {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
             setIsProcessing(false);
         }
     };
@@ -105,162 +108,67 @@ export default function ExcelToPDFTool() {
     };
 
     return (
-        <div className="w-full max-w-3xl mx-auto">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-8">
+            <div className="max-w-4xl mx-auto">
+                {/* Header */}
+                <div className="text-center mb-12">
+                    <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+                        📄 Excel to PDF Converter
+                    </h1>
+                    <p className="text-gray-600 text-lg">
+                        Convert Excel spreadsheets to PDF while preserving tables, formatting, and data structure.
+                    </p>
+                </div>
+
                 {/* Upload Area */}
                 {!file && (
-                    <div
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${isDragging
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
-                    >
-                        <div className="flex flex-col items-center gap-4">
-                            <svg
-                                className="w-16 h-16 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={1.5}
-                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                />
-                            </svg>
-                            <div>
-                                <label
-                                    htmlFor="file-upload"
-                                    className="cursor-pointer text-blue-600 hover:text-blue-700 font-medium"
-                                >
-                                    Click to upload
-                                </label>
-                                <span className="text-gray-600"> or drag and drop</span>
-                            </div>
-                            <p className="text-sm text-gray-500">Excel files (.xls, .xlsx) up to 25MB</p>
-                            <input
-                                id="file-upload"
-                                type="file"
-                                accept=".xls,.xlsx"
-                                onChange={handleFileSelect}
-                                className="hidden"
-                            />
-                        </div>
+                    <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                        <DragDropUpload
+                            onFileSelect={handleFileSelect}
+                            accept=".xls,.xlsx"
+                            multiple={false}
+                            maxSize={25}
+                            icon="📊"
+                            title="Click to select an Excel file"
+                            subtitle="or drag and drop here"
+                            borderColor="border-blue-300"
+                            hoverColor="border-blue-500 bg-blue-50"
+                        />
                     </div>
                 )}
 
-                {/* File Selected */}
-                {file && !downloadUrl && (
-                    <div className="space-y-6">
-                        <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <svg
-                                className="w-10 h-10 text-green-600 flex-shrink-0"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                />
-                            </svg>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-medium text-gray-900 truncate">{file.name}</p>
-                                <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                {!file && (
+                    <div className="mt-8 bg-blue-50 rounded-2xl p-8 border-2 border-blue-200">
+                        <h3 className="text-xl font-bold text-blue-900 mb-4">
+                            📖 How to use:
+                        </h3>
+                        <ol className="space-y-2 text-blue-800">
+                            <li>1. Upload an Excel file (.xls or .xlsx)</li>
+                            <li>2. Click "Convert to PDF"</li>
+                            <li>3. Download your converted PDF</li>
+                        </ol>
+                    </div>
+                )}
+
+                {/* File Info */}
+                {file && (
+                    <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="text-4xl">📄</div>
+                                <div>
+                                    <div className="font-semibold text-gray-800">{file.name}</div>
+                                    <div className="text-sm text-gray-500">
+                                        {formatFileSize(file.size)} • Max 25MB
+                                    </div>
+                                </div>
                             </div>
                             <button
                                 onClick={resetTool}
-                                className="text-gray-400 hover:text-gray-600"
                                 disabled={isProcessing}
+                                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <button
-                            onClick={convertToPDF}
-                            disabled={isProcessing}
-                            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors"
-                        >
-                            {isProcessing ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <svg
-                                        className="animate-spin h-5 w-5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                        />
-                                        <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        />
-                                    </svg>
-                                    Converting...
-                                </span>
-                            ) : (
-                                'Convert to PDF'
-                            )}
-                        </button>
-                    </div>
-                )}
-
-                {/* Success State */}
-                {downloadUrl && (
-                    <div className="space-y-6">
-                        <div className="text-center py-8">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg
-                                    className="w-8 h-8 text-green-600"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M5 13l4 4L19 7"
-                                    />
-                                </svg>
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Conversion Complete</h3>
-                            <p className="text-gray-600">Your PDF is ready to download</p>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <a
-                                href={downloadUrl}
-                                download={file?.name.replace(/\.[^/.]+$/, '') + '.pdf'}
-                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg text-center transition-colors"
-                            >
-                                Download PDF
-                            </a>
-                            <button
-                                onClick={resetTool}
-                                className="px-6 py-3 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors"
-                            >
-                                Convert Another
+                                Remove
                             </button>
                         </div>
                     </div>
@@ -268,30 +176,84 @@ export default function ExcelToPDFTool() {
 
                 {/* Error State */}
                 {error && (
-                    <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-start gap-3">
-                            <svg
-                                className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                            </svg>
-                            <p className="text-sm text-red-800">{error}</p>
+                    <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
+                        <h4 className="text-red-900 font-semibold mb-2">⚠️ Error</h4>
+                        <p className="text-red-700">{error}</p>
+                    </div>
+                )}
+
+                {/* Progress */}
+                {isProcessing && (
+                    <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                        <div className="mb-4 text-center">
+                            <div className="text-xl font-semibold text-gray-700 mb-2">
+                                Converting to PDF...
+                            </div>
+                            <div className="text-4xl font-bold text-blue-600">
+                                {Math.round(progress)}%
+                            </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                            <div
+                                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300 rounded-full"
+                                style={{ width: `${progress}%` }}
+                            />
                         </div>
                     </div>
                 )}
-            </div>
 
-            {/* Privacy Notice */}
-            <div className="mt-6 text-center text-sm text-gray-500">
-                <p>Files are processed securely and deleted automatically after conversion</p>
+                {/* Convert Button */}
+                {file && !isProcessing && !downloadUrl && (
+                    <button
+                        onClick={convertToPDF}
+                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xl font-bold py-6 rounded-2xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
+                    >
+                        📄 Convert to PDF
+                    </button>
+                )}
+
+                {/* Success State */}
+                {downloadUrl && !isProcessing && (
+                    <div className="text-center py-8 bg-green-50 rounded-2xl border-2 border-green-200 mb-8">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <h3 className="text-2xl font-bold text-green-900 mb-2">Conversion Complete!</h3>
+                        <p className="text-green-700 mb-6">Your PDF is ready to download.</p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <a
+                                href={downloadUrl}
+                                download={file?.name.replace(/\.[^/.]+$/, '') + '.pdf'}
+                                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 !text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+                            >
+                                Download PDF
+                            </a>
+                            <button
+                                onClick={resetTool}
+                                className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+                            >
+                                Convert Another File
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Features */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+                    {[
+                        { icon: "📋", title: "Preserves Formatting", description: "Tables, borders, and alignment stay intact" },
+                        { icon: "🔒", title: "Secure", description: "Files are deleted after conversion" },
+                        { icon: "⚡", title: "Fast", description: "Convert spreadsheets in seconds" },
+                    ].map((feature, index) => (
+                        <div key={index} className="text-center p-6 bg-white rounded-xl border border-blue-100 shadow-sm">
+                            <div className="text-4xl mb-3">{feature.icon}</div>
+                            <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
+                            <p className="text-sm text-gray-600">{feature.description}</p>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

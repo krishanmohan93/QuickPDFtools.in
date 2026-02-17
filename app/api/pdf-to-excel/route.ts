@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import * as pdfjsLib from "pdfjs-dist";
 
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 export async function POST(request: NextRequest) {
@@ -122,7 +119,7 @@ async function extractTablesFromPDF(pdfBuffer: Buffer): Promise<{
     pagesProcessed: number;
 }> {
     const data = new Uint8Array(pdfBuffer);
-    const pdf = await pdfjsLib.getDocument(data).promise;
+        const pdf = await pdfjsLib.getDocument({ data, disableWorker: true }).promise;
     const tables: Array<{ data: string[][] }> = [];
     let pagesProcessed = 0;
 

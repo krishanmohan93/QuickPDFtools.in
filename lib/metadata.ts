@@ -14,8 +14,7 @@ const TOOL_KEYWORDS = {
     "png-to-pdf": "png to pdf, convert image to pdf, transparent to pdf, free png to pdf",
     "pdf-to-excel": "pdf to excel, convert pdf to xlsx, pdf to spreadsheet, free pdf to excel",
     "excel-to-pdf": "excel to pdf, convert xlsx to pdf, spreadsheet to pdf, free excel to pdf",
-    "pdf-to-ppt": "pdf to powerpoint, convert pdf to ppt, pdf to presentation, free pdf to ppt",
-    "ppt-to-pdf": "powerpoint to pdf, convert ppt to pdf, presentation to pdf, free ppt to pdf",
+    "pdf-to-ppt": "pdf to pptx, pdf to powerpoint, convert pdf to pptx, pdf to presentation, free pdf to pptx",
     "protect-pdf": "protect pdf, password pdf, secure pdf, encrypt pdf, free pdf protector",
     "unlock-pdf": "unlock pdf, remove pdf password, decrypt pdf, free pdf unlocker",
     "rotate-pdf": "rotate pdf, rotate pdf pages, pdf rotator, free pdf rotate",
@@ -36,8 +35,7 @@ const TOOL_DESCRIPTIONS = {
     "png-to-pdf": "Convert PNG images to PDF documents online for free. Create PDFs from transparent images with our PNG to PDF converter.",
     "pdf-to-excel": "Convert PDF tables to Excel spreadsheets online for free. Extract data from PDFs to XLSX format with our PDF to Excel converter.",
     "excel-to-pdf": "Convert Excel spreadsheets to PDF format online for free. Transform XLSX files to PDF with our Excel to PDF converter.",
-    "pdf-to-ppt": "Convert PDF files to PowerPoint presentations online for free. Transform PDFs to PPT format with our PDF to PPT converter.",
-    "ppt-to-pdf": "Convert PowerPoint presentations to PDF format online for free. Transform PPT files to PDF with our PPT to PDF converter.",
+    "pdf-to-ppt": "Convert PDF files to PowerPoint (PPTX) presentations online for free. Transform PDFs to PPTX format with our PDF to PPTX converter.",
     "protect-pdf": "Add password protection to your PDF files online for free. Secure your PDFs with encryption using our PDF protector tool.",
     "unlock-pdf": "Remove password protection from PDF files online for free. Unlock encrypted PDFs with our PDF unlocker tool.",
     "rotate-pdf": "Rotate PDF pages in any direction online for free. Change PDF page orientation with our PDF rotator tool.",
@@ -58,8 +56,7 @@ const TOOL_TITLES = {
     "png-to-pdf": "Convert PNG to PDF Online - Free Image to PDF Converter",
     "pdf-to-excel": "Convert PDF to Excel Online - Free PDF to XLSX Converter",
     "excel-to-pdf": "Convert Excel to PDF Online - Free XLSX to PDF Converter",
-    "pdf-to-ppt": "Convert PDF to PowerPoint Online - Free PDF to PPT Converter",
-    "ppt-to-pdf": "Convert PowerPoint to PDF Online - Free PPT to PDF Converter",
+    "pdf-to-ppt": "Convert PDF to PowerPoint Online - Free PDF to PPTX Converter",
     "protect-pdf": "Protect PDF with Password Online - Free PDF Security Tool",
     "unlock-pdf": "Unlock PDF Password Online - Free PDF Decryptor Tool",
     "rotate-pdf": "Rotate PDF Pages Online - Free PDF Rotator Tool",
@@ -139,3 +136,4 @@ export function generateHomeMetadata(): Metadata {
         },
     };
 }
+

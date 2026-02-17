@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import { PDFDocument } from "pdf-lib";
 import DragDropUpload from "./DragDropUpload";
 
@@ -8,27 +8,48 @@ export default function MergePDFTool() {
     const [files, setFiles] = useState<File[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const handleFileSelect = (selectedFiles: File[]) => {
-        setFiles([...files, ...selectedFiles]);
+        setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
     };
 
     const removeFile = (index: number) => {
         setFiles(files.filter((_, i) => i !== index));
     };
 
-    const moveUp = (index: number) => {
-        if (index === 0) return;
-        const newFiles = [...files];
-        [newFiles[index - 1], newFiles[index]] = [newFiles[index], newFiles[index - 1]];
-        setFiles(newFiles);
+    const moveFile = (fromIndex: number, toIndex: number) => {
+        if (toIndex < 0 || toIndex >= files.length || fromIndex === toIndex) return;
+        const nextFiles = [...files];
+        const [moved] = nextFiles.splice(fromIndex, 1);
+        nextFiles.splice(toIndex, 0, moved);
+        setFiles(nextFiles);
     };
 
-    const moveDown = (index: number) => {
-        if (index === files.length - 1) return;
-        const newFiles = [...files];
-        [newFiles[index], newFiles[index + 1]] = [newFiles[index + 1], newFiles[index]];
-        setFiles(newFiles);
+    const handleDragStart = (index: number) => {
+        setDraggingIndex(index);
+        setDragOverIndex(index);
+    };
+
+    const handleDragOver = (event: DragEvent<HTMLDivElement>, index: number) => {
+        event.preventDefault();
+        if (dragOverIndex !== index) {
+            setDragOverIndex(index);
+        }
+    };
+
+    const handleDrop = (event: DragEvent<HTMLDivElement>, index: number) => {
+        event.preventDefault();
+        if (draggingIndex === null) return;
+        moveFile(draggingIndex, index);
+        setDraggingIndex(null);
+        setDragOverIndex(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggingIndex(null);
+        setDragOverIndex(null);
     };
 
     const mergePDFs = async () => {
@@ -117,42 +138,51 @@ export default function MergePDFTool() {
                     />
                 </div>
 
+                {/* Instructions */}
+                <div className="mt-8 bg-blue-50 rounded-2xl p-8 border-2 border-blue-200">
+                    <h3 className="text-xl font-bold text-blue-900 mb-4">
+                        📖 How to use:
+                    </h3>
+                    <ol className="space-y-2 text-blue-800">
+                        <li>1. Click to select or drag PDF files</li>
+                        <li>2. Drag files to reorder</li>
+                        <li>3. Click "Merge PDFs" to combine them</li>
+                        <li>4. Your merged PDF will download automatically</li>
+                    </ol>
+                </div>
+
                 {/* File List */}
                 {files.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                            Selected Files ({files.length})
-                        </h2>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">
+                                Selected Files ({files.length})
+                            </h2>
+                            {files.length > 1 && (
+                                <span className="text-xs text-gray-500">Drag to reorder</span>
+                            )}
+                        </div>
                         <div className="space-y-3">
                             {files.map((file, index) => (
                                 <div
                                     key={index}
-                                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200"
+                                    className={`flex flex-wrap items-center gap-4 p-4 rounded-lg border transition-colors ${files.length > 1 ? "cursor-move" : ""} ${dragOverIndex === index ? "border-purple-300 bg-purple-50" : "border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50"} ${draggingIndex === index ? "opacity-60" : ""}`}
+                                    draggable={files.length > 1 && !isProcessing}
+                                    onDragStart={() => handleDragStart(index)}
+                                    onDragOver={(event) => handleDragOver(event, index)}
+                                    onDrop={(event) => handleDrop(event, index)}
+                                    onDragEnd={handleDragEnd}
                                 >
                                     <div className="text-3xl">📄</div>
-                                    <div className="flex-1">
+                                    <div className="flex-1 min-w-[200px]">
                                         <div className="font-semibold text-gray-800">
-                                            {file.name}
+                                            {index + 1}. {file.name}
                                         </div>
                                         <div className="text-sm text-gray-500">
                                             {(file.size / 1024 / 1024).toFixed(2)} MB
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button
-                                            onClick={() => moveUp(index)}
-                                            disabled={index === 0 || isProcessing}
-                                            className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            ↑
-                                        </button>
-                                        <button
-                                            onClick={() => moveDown(index)}
-                                            disabled={index === files.length - 1 || isProcessing}
-                                            className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            ↓
-                                        </button>
                                         <button
                                             onClick={() => removeFile(index)}
                                             disabled={isProcessing}
@@ -196,19 +226,6 @@ export default function MergePDFTool() {
                         🔗 Merge {files.length} PDFs
                     </button>
                 )}
-
-                {/* Instructions */}
-                <div className="mt-12 bg-blue-50 rounded-2xl p-8 border-2 border-blue-200">
-                    <h3 className="text-xl font-bold text-blue-900 mb-4">
-                        📖 How to use:
-                    </h3>
-                    <ol className="space-y-2 text-blue-800">
-                        <li>1. Click to select or drag PDF files</li>
-                        <li>2. Use ↑ ↓ buttons to reorder files</li>
-                        <li>3. Click "Merge PDFs" to combine them</li>
-                        <li>4. Your merged PDF will download automatically</li>
-                    </ol>
-                </div>
             </div>
         </div>
     );

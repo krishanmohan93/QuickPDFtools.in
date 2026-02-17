@@ -1,96 +1,138 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+import {
+    ProtectPdfError,
+    assertPdfHeader,
+    detectEncryptedPdf,
+    protectPdfWithQpdf,
+    sanitizeBaseName,
+    saveFileToTemp,
+    type PdfPermissions,
+} from "@/lib/protectPdf";
 
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
+const DEFAULT_MAX_MB = 50;
+
+/** Calculate the maximum file size for uploads. */
+function getMaxFileSizeBytes() {
+    const maxMbEnv = Number(process.env.PROTECT_PDF_MAX_MB || DEFAULT_MAX_MB);
+    return Math.max(1, maxMbEnv) * 1024 * 1024;
+}
+
+/** Parse permissions string from the client into booleans. */
+function parsePermissions(rawPermissions?: string | null): PdfPermissions {
+    const list = (rawPermissions || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    return {
+        print: list.includes("print"),
+        copy: list.includes("copy"),
+        modify: list.includes("modify"),
+        annotate: list.includes("annotate"),
+    };
+}
+
+/** Protect a PDF by applying encryption with a user password. */
 export async function POST(request: NextRequest) {
+    let cleanup: (() => Promise<void>) | null = null;
+
     try {
+        if (request.signal.aborted) {
+            return NextResponse.json({ error: "Upload cancelled." }, { status: 400 });
+        }
+
         const formData = await request.formData();
-        const file = formData.get("file0") as File;
-        const userPassword = formData.get("userPassword") as string || "";
-        const ownerPassword = formData.get("ownerPassword") as string || "";
-        const permissions = formData.get("permissions") as string || "print,copy";
+        const file =
+            (formData.get("file0") as File | null) ||
+            (formData.get("file") as File | null);
+        const userPasswordRaw = formData.get("userPassword");
+        const ownerPasswordRaw = formData.get("ownerPassword");
+        const userPassword = typeof userPasswordRaw === "string" ? userPasswordRaw : "";
+        const ownerPassword = typeof ownerPasswordRaw === "string" ? ownerPasswordRaw : "";
+        const permissionsRaw = formData.get("permissions") as string | null;
 
         if (!file) {
             return NextResponse.json(
-                { error: "Please upload a PDF file" },
+                { error: "Please upload a PDF file." },
                 { status: 400 }
             );
         }
 
-        if (!userPassword && !ownerPassword) {
+        if (!userPassword.trim()) {
             return NextResponse.json(
-                { error: "Please provide at least one password" },
+                { error: "User password is required to open the PDF." },
                 { status: 400 }
             );
         }
 
-        // Load the PDF
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-
-        // Note: pdf-lib doesn't support encryption directly
-        // We'll use a workaround by adding metadata and watermark
-        // For true encryption, you'd need a different library like pdf-lib with encryption extensions
-
-        // Add protection metadata
-        pdfDoc.setTitle(`Protected: ${getFileNameWithoutExtension(file.name)}`);
-        pdfDoc.setAuthor('PDF Master Tools');
-        pdfDoc.setSubject('Password Protected Document');
-        pdfDoc.setCreator('PDF Master Tools - Protect PDF');
-        pdfDoc.setProducer('PDF Master Tools');
-        pdfDoc.setKeywords(['protected', 'encrypted', 'secure']);
-
-        // Add a watermark to indicate protection (visual indicator)
-        const pages = pdfDoc.getPages();
-        const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-        for (const page of pages) {
-            const { width, height } = page.getSize();
-
-            // Add subtle watermark
-            page.drawText('🔒 Protected', {
-                x: width - 100,
-                y: 10,
-                size: 8,
-                font: font,
-                opacity: 0.3,
-            });
+        if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+            return NextResponse.json(
+                { error: "Only PDF files are supported." },
+                { status: 400 }
+            );
         }
 
-        // Save the PDF with optimized settings
-        const pdfBytes = await pdfDoc.save({
-            useObjectStreams: false,
-            addDefaultPage: false,
-            objectsPerTick: 50,
+        const maxBytes = getMaxFileSizeBytes();
+        if (file.size > maxBytes) {
+            return NextResponse.json(
+                { error: `File too large. Max allowed is ${Math.round(maxBytes / 1024 / 1024)}MB.` },
+                { status: 413 }
+            );
+        }
+
+        const tempFile = await saveFileToTemp(file, "protect-pdf");
+        cleanup = tempFile.cleanup;
+
+        await assertPdfHeader(tempFile.filePath);
+        await detectEncryptedPdf(tempFile.filePath);
+
+        const permissions = parsePermissions(permissionsRaw);
+        const baseName = sanitizeBaseName(file.name);
+        const result = await protectPdfWithQpdf({
+            inputPath: tempFile.filePath,
+            outputBaseName: baseName,
+            userPassword,
+            ownerPassword,
+            permissions,
+            signal: request.signal,
+            timeoutMs: Number(process.env.PROTECT_PDF_TIMEOUT_MS || 120000),
         });
 
-        // Store password info in response headers (for demo purposes)
-        // In production, you'd use actual PDF encryption
-        const response = new NextResponse(Buffer.from(pdfBytes), {
+        const headers = new Headers();
+        headers.set("Content-Type", result.contentType);
+        headers.set("Content-Disposition", `attachment; filename="${result.fileName}"`);
+        headers.set("Cache-Control", "no-store, max-age=0");
+        headers.set("X-Protection-Type", "qpdf-encrypt");
+        headers.set("X-User-Password-Set", "true");
+        headers.set("X-Owner-Password-Set", ownerPassword ? "true" : "false");
+        headers.set("X-Permissions", permissionsRaw || "");
+        if (result.contentLength) {
+            headers.set("Content-Length", result.contentLength.toString());
+        }
+
+        return new NextResponse(result.stream, {
             status: 200,
-            headers: {
-                "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}_protected.pdf`,
-                "X-Protection-Type": "metadata-watermark",
-                "X-User-Password-Set": userPassword ? "true" : "false",
-                "X-Owner-Password-Set": ownerPassword ? "true" : "false",
-                "X-Permissions": permissions,
-            },
+            headers,
         });
-
-        return response;
-
     } catch (error) {
-        console.error("Error protecting PDF:", error);
+        if (error instanceof ProtectPdfError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
+
+        if ((error as any)?.name === "AbortError") {
+            return NextResponse.json({ error: "Protection cancelled." }, { status: 400 });
+        }
+
         return NextResponse.json(
-            { error: `Failed to protect PDF: ${error instanceof Error ? error.message : 'Unknown error'}` },
+            { error: `Failed to protect PDF: ${error instanceof Error ? error.message : "Unknown error"}` },
             { status: 500 }
         );
+    } finally {
+        if (cleanup) {
+            await cleanup();
+        }
     }
-}
-
-/**
- * Get filename without extension
- */
-function getFileNameWithoutExtension(filename: string): string {
-    return filename.replace(/\.[^/.]+$/, "");
 }

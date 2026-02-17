@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useRef, useState, useEffect } from 'react';
-import { FileUp, Download, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { useState } from 'react';
+import DragDropUpload from '@/components/DragDropUpload';
 import { SITE_URL } from '@/lib/constants';
 
 interface ConversionResult {
@@ -33,71 +33,47 @@ export default function PDFToExcelPage() {
     ],
   };
 
-  const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ConversionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+  const MAX_FILE_SIZE_MB = 20;
+  const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
 
-  const validateFile = (file: File): string | null => {
-    if (file.type !== 'application/pdf') {
+  const validateFile = (selectedFile: File): string | null => {
+    if (selectedFile.type !== 'application/pdf') {
       return 'Please upload a PDF file';
     }
-    if (file.size > MAX_FILE_SIZE) {
-      return `File size must be less than 20MB (your file: ${(file.size / 1024 / 1024).toFixed(2)}MB)`;
+    if (selectedFile.size > MAX_FILE_SIZE) {
+      return `File size must be less than ${MAX_FILE_SIZE_MB}MB (your file: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB)`;
     }
     return null;
   };
 
-  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
+  const handleFileSelect = (selectedFiles: File[]) => {
+    const selectedFile = selectedFiles[0];
+    if (!selectedFile) return;
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      handleFile(files[0]);
-    }
-  };
-
-  const handleFile = (selectedFile: File) => {
     const validationError = validateFile(selectedFile);
     if (validationError) {
       setError(validationError);
       setFile(null);
+      setResult(null);
       return;
     }
+
     setError(null);
     setFile(selectedFile);
     setResult(null);
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.currentTarget.files;
-    if (files && files.length > 0) {
-      handleFile(files[0]);
-    }
+  const resetState = () => {
+    setFile(null);
+    setError(null);
+    setResult(null);
+    setProgress(0);
   };
 
   const handleConvert = async () => {
@@ -118,8 +94,8 @@ export default function PDFToExcelPage() {
       // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress((prev) => {
-          if (prev >= 90) return prev;
-          return prev + Math.random() * 20;
+          if (prev >= 90) return 90;
+          return prev + Math.random() * 15;
         });
       }, 300);
 
@@ -172,210 +148,145 @@ export default function PDFToExcelPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100 p-8">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            PDF to Excel Converter
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-4">
+            📊 PDF to Excel Converter
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-gray-600 text-lg">
             Convert PDF tables to editable Excel files instantly. Extract data from any PDF and download as .xlsx
           </p>
         </div>
 
-        {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Upload Area */}
-          <div
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            className={`p-12 border-2 border-dashed transition-all duration-300 cursor-pointer ${isDragging
-              ? 'border-indigo-500 bg-indigo-50'
-              : 'border-gray-300 bg-white hover:border-indigo-400'
-              }`}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
+        {/* Upload Area */}
+        {!file && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <DragDropUpload
+              onFileSelect={handleFileSelect}
               accept=".pdf"
-              onChange={handleFileInputChange}
-              className="hidden"
+              multiple={false}
+              maxSize={MAX_FILE_SIZE_MB}
+              icon="📄"
+              title="Click to select a PDF file"
+              subtitle="or drag and drop here"
+              borderColor="border-indigo-300"
+              hoverColor="border-indigo-500 bg-indigo-50"
             />
+          </div>
+        )}
 
-            <div className="flex flex-col items-center">
-              <div className="mb-4">
-                <FileUp
-                  size={48}
-                  className={`transition-colors ${isDragging ? 'text-indigo-600' : 'text-gray-400'
-                    }`}
-                />
+        {!file && (
+          <div className="mt-8 bg-indigo-50 rounded-2xl p-8 border-2 border-indigo-200">
+            <h3 className="text-xl font-bold text-indigo-900 mb-4">
+              📖 How to use:
+            </h3>
+            <ol className="space-y-2 text-indigo-800">
+              <li>1. Upload a PDF file</li>
+              <li>2. Click "Convert to Excel"</li>
+              <li>3. Download your .xlsx file</li>
+            </ol>
+          </div>
+        )}
+
+        {/* File Info */}
+        {file && (
+          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="text-4xl">📄</div>
+                <div>
+                  <div className="font-semibold text-gray-800">{file.name}</div>
+                  <div className="text-sm text-gray-500">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB • Max {MAX_FILE_SIZE_MB}MB
+                  </div>
+                </div>
               </div>
-
-              {!file ? (
-                <>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Drag your PDF here
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    or{' '}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-indigo-600 font-semibold hover:text-indigo-700 underline"
-                    >
-                      click to browse
-                    </button>
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Maximum file size: 20MB
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {file.name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {(file.size / 1024 / 1024).toFixed(2)}MB
-                  </p>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-indigo-600 font-semibold hover:text-indigo-700 underline"
-                  >
-                    Change file
-                  </button>
-                </>
-              )}
+              <button
+                onClick={resetState}
+                disabled={isLoading}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                Remove
+              </button>
             </div>
           </div>
+        )}
 
-          {/* Error Message */}
-          {error && (
-            <div className="mx-12 mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-              <div>
-                <h4 className="font-semibold text-red-900">Error</h4>
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Success Message */}
-          {result?.success && (
-            <div className="mx-12 mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
-              <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
-              <div>
-                <h4 className="font-semibold text-green-900">
-                  Conversion successful!
-                </h4>
-                <p className="text-green-700 text-sm mt-1">
-                  {result.tablesFound && `${result.tablesFound} table(s) found`}
-                  {result.tablesFound && result.rowsExtracted && ' • '}
-                  {result.rowsExtracted && `${result.rowsExtracted} row(s) extracted`}
-                  {(result.tablesFound || result.rowsExtracted) && result.processingTime && ' • '}
-                  {result.processingTime && `Processed in ${result.processingTime.toFixed(2)}s`}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Progress Bar */}
-          {isLoading && progress > 0 && (
-            <div className="mx-12 mt-6 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-gray-700">
-                  Converting...
-                </p>
-                <p className="text-sm text-gray-500">{Math.round(progress)}%</p>
-              </div>
-              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Convert Button */}
-          <div className="px-12 py-8 bg-gray-50 flex gap-4">
-            <button
-              onClick={handleConvert}
-              disabled={!file || isLoading}
-              className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${!file || isLoading
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white hover:shadow-lg transform hover:scale-105 active:scale-95'
-                }`}
-            >
-              {isLoading ? (
-                <>
-                  <Loader size={20} className="animate-spin" />
-                  Converting...
-                </>
-              ) : (
-                <>
-                  <Download size={20} />
-                  Convert to Excel
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => {
-                setFile(null);
-                setError(null);
-                setResult(null);
-                setProgress(0);
-              }}
-              disabled={!file && !result}
-              className={`py-3 px-6 rounded-lg font-semibold transition-all ${!file && !result
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}
-            >
-              Reset
-            </button>
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
+            <h4 className="text-red-900 font-semibold mb-2">⚠️ Error</h4>
+            <p className="text-red-700">{error}</p>
           </div>
+        )}
 
-          {/* Info Section */}
-          <div className="px-12 py-8 bg-white border-t border-gray-200">
-            <h4 className="font-semibold text-gray-900 mb-4">Features</h4>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                Extract tables from PDF
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                Multi-page support
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                Editable Excel format
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                Instant download
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                No registration required
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-                100% Secure
-              </li>
-            </ul>
+        {/* Success Message */}
+        {result?.success && (
+          <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 mb-8">
+            <h4 className="text-green-900 font-semibold mb-2">✅ Conversion successful!</h4>
+            <p className="text-green-700 text-sm">
+              {result.tablesFound && `${result.tablesFound} table(s) found`}
+              {result.tablesFound && result.rowsExtracted && ' • '}
+              {result.rowsExtracted && `${result.rowsExtracted} row(s) extracted`}
+              {(result.tablesFound || result.rowsExtracted) && result.processingTime && ' • '}
+              {result.processingTime && `Processed in ${result.processingTime.toFixed(2)}s`}
+            </p>
           </div>
+        )}
+
+        {/* Progress */}
+        {isLoading && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+            <div className="mb-4 text-center">
+              <div className="text-xl font-semibold text-gray-700 mb-2">
+                Converting to Excel...
+              </div>
+              <div className="text-4xl font-bold text-indigo-600">
+                {Math.round(progress)}%
+              </div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-indigo-500 to-blue-500 h-full transition-all duration-300 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Convert Button */}
+        {file && !isLoading && (
+          <button
+            onClick={handleConvert}
+            className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-xl font-bold py-6 rounded-2xl hover:from-indigo-700 hover:to-blue-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
+          >
+            📊 Convert to Excel
+          </button>
+        )}
+
+        {/* Features */}
+        <div className="mt-12 bg-blue-50 rounded-2xl p-8 border-2 border-blue-200">
+          <h3 className="text-xl font-bold text-blue-900 mb-4">
+            💡 Features:
+          </h3>
+          <ul className="space-y-2 text-blue-800">
+            <li>• Extract tables from PDF</li>
+            <li>• Multi-page support</li>
+            <li>• Editable Excel format</li>
+            <li>• Instant download</li>
+            <li>• No registration required</li>
+            <li>• 100% Secure</li>
+          </ul>
         </div>
 
         {/* SEO Description */}
-        <div className="mt-12 max-w-3xl mx-auto bg-white rounded-lg p-8 shadow">
+        <div className="mt-12 bg-white rounded-2xl p-8 border-2 border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             About PDF to Excel Conversion
           </h2>

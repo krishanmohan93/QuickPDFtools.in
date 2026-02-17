@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type DragEvent } from "react";
 import FileUpload from "@/components/FileUpload";
 import ProgressBar from "@/components/ProgressBar";
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from "@/lib/constants";
@@ -30,11 +30,54 @@ export default function ToolPage({
     const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
     const [message, setMessage] = useState("");
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+    const allowMultiple = toolId === "merge-pdf" || toolId === "jpg-to-pdf" || toolId === "png-to-pdf";
 
     const handleFilesSelected = (selectedFiles: File[]) => {
-        setFiles(selectedFiles);
+        setFiles((prevFiles) => (allowMultiple ? [...prevFiles, ...selectedFiles] : selectedFiles));
         setDownloadUrl(null);
         setMessage("");
+    };
+
+    const moveFile = (fromIndex: number, toIndex: number) => {
+        setFiles((prevFiles) => {
+            if (toIndex < 0 || toIndex >= prevFiles.length || fromIndex === toIndex) return prevFiles;
+            const nextFiles = [...prevFiles];
+            const [moved] = nextFiles.splice(fromIndex, 1);
+            nextFiles.splice(toIndex, 0, moved);
+            return nextFiles;
+        });
+    };
+
+    const removeFile = (index: number) => {
+        setFiles((prevFiles) => prevFiles.filter((_, fileIndex) => fileIndex !== index));
+    };
+
+    const handleDragStart = (index: number) => {
+        setDraggingIndex(index);
+        setDragOverIndex(index);
+    };
+
+    const handleDragOver = (event: DragEvent<HTMLDivElement>, index: number) => {
+        event.preventDefault();
+        if (dragOverIndex !== index) {
+            setDragOverIndex(index);
+        }
+    };
+
+    const handleDrop = (event: DragEvent<HTMLDivElement>, index: number) => {
+        event.preventDefault();
+        if (draggingIndex === null) return;
+        moveFile(draggingIndex, index);
+        setDraggingIndex(null);
+        setDragOverIndex(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggingIndex(null);
+        setDragOverIndex(null);
     };
 
     const handleProcess = async () => {
@@ -162,44 +205,59 @@ export default function ToolPage({
                 <p className="text-xl text-gray-600">{toolDescription}</p>
             </div>
 
-            {instructions && instructions.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
-                    <h3 className="font-semibold text-blue-900 mb-3">How to use:</h3>
-                    <ol className="list-decimal list-inside space-y-2 text-blue-800">
-                        {instructions.map((instruction, index) => (
-                            <li key={index}>{instruction}</li>
-                        ))}
-                    </ol>
-                </div>
-            )}
-
             <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
                 {!processing && !downloadUrl && (
                     <>
                         <FileUpload
                             accept={acceptedFileTypes}
                             maxSize={MAX_FILE_SIZE}
-                            multiple={toolId === "merge-pdf" || toolId === "jpg-to-pdf" || toolId === "png-to-pdf"}
+                            multiple={allowMultiple}
                             onFilesSelected={handleFilesSelected}
                         />
                         {files.length > 0 && (
                             <div className="mt-6">
-                                <h3 className="font-semibold text-gray-900 mb-3">Selected Files:</h3>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="font-semibold text-gray-900">Selected Files:</h3>
+                                    {allowMultiple && files.length > 1 && (
+                                        <span className="text-xs text-gray-500">Drag to reorder</span>
+                                    )}
+                                </div>
                                 <div className="space-y-2">
                                     {files.map((file, index) => (
                                         <div
                                             key={index}
-                                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                            className={`flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg border transition-colors ${allowMultiple && files.length > 1 ? "cursor-move" : ""} ${dragOverIndex === index ? "border-blue-300 bg-blue-50" : "border-transparent bg-gray-50"} ${draggingIndex === index ? "opacity-60" : ""}`}
+                                            draggable={allowMultiple && files.length > 1}
+                                            onDragStart={() => handleDragStart(index)}
+                                            onDragOver={(event) => handleDragOver(event, index)}
+                                            onDrop={(event) => handleDrop(event, index)}
+                                            onDragEnd={handleDragEnd}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                 </svg>
+                                                {allowMultiple && (
+                                                    <span className="text-xs font-semibold text-gray-500 w-6 text-right">
+                                                        {index + 1}.
+                                                    </span>
+                                                )}
                                                 <span className="text-sm font-medium text-gray-700">{file.name}</span>
                                             </div>
-                                            <span className="text-xs text-gray-500">
-                                                {(file.size / 1024 / 1024).toFixed(2)} MB
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-gray-500">
+                                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeFile(index)}
+                                                    disabled={processing}
+                                                    aria-label="Remove file"
+                                                    className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -246,6 +304,17 @@ export default function ToolPage({
                     </div>
                 )}
             </div>
+
+            {instructions && instructions.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+                    <h3 className="font-semibold text-blue-900 mb-3">How to use:</h3>
+                    <ol className="list-decimal list-inside space-y-2 text-blue-800">
+                        {instructions.map((instruction, index) => (
+                            <li key={index}>{instruction}</li>
+                        ))}
+                    </ol>
+                </div>
+            )}
 
             {/* Features */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

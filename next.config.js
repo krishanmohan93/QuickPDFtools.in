@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    serverExternalPackages: ["pdfkit"],
     // Webpack configuration (Turbopack disabled by using --webpack flag)
     webpack: (config, { isServer }) => {
         // Disable problematic modules for client-side

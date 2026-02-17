@@ -18,6 +18,19 @@ export interface TextItem {
   transform: number[]; // Added to match usage
   pageNumber: number;
   originalText: string;
+  /**
+   * True when the text item came from OCR (image-based PDF).
+   */
+  isOcr?: boolean;
+  /**
+   * Index of the original PDF.js text item in the page's textContent.items array.
+   * This is critical for exact, in-place content stream editing.
+   */
+  sourceIndex?: number;
+  /**
+   * When multiple items are merged, keep a list of original source indexes.
+   */
+  sourceIndexes?: number[];
   hasText?: boolean; // Optional flag
   originalItems?: TextItem[]; // For merged items
   contentStreamRef?: string; // Reference to content stream location
@@ -581,6 +594,8 @@ const detectTextWithContentStreams = async (pdf: any, pageNum: number, scale: nu
         transform,
         pageNumber: pageNum,
         originalText: item.str,
+        sourceIndex: index,
+        sourceIndexes: [index],
         contentStreamRef: contentObj?.operator,
         textOperator: contentObj?.operator,
         textBytes: contentObj ? new TextEncoder().encode(contentObj.text) : undefined,
@@ -811,7 +826,11 @@ const mergeTextItems = (items: TextItem[], scale: number): TextItem[] => {
 
   sorted.forEach((item) => {
     if (!currentBlock) {
-      currentBlock = { ...item, originalItems: [item] };
+      currentBlock = {
+        ...item,
+        originalItems: [item],
+        sourceIndexes: item.sourceIndexes ?? (item.sourceIndex !== undefined ? [item.sourceIndex] : []),
+      };
       return;
     }
 
@@ -846,11 +865,17 @@ const mergeTextItems = (items: TextItem[], scale: number): TextItem[] => {
       // Keep track of originals
       if (!currentBlock.originalItems) currentBlock.originalItems = [];
       currentBlock.originalItems.push(item);
+      const nextSources = item.sourceIndexes ?? (item.sourceIndex !== undefined ? [item.sourceIndex] : []);
+      currentBlock.sourceIndexes = Array.from(new Set([...(currentBlock.sourceIndexes || []), ...nextSources]));
 
     } else {
       // Push current and start new
       merged.push(currentBlock);
-      currentBlock = { ...item, originalItems: [item] };
+      currentBlock = {
+        ...item,
+        originalItems: [item],
+        sourceIndexes: item.sourceIndexes ?? (item.sourceIndex !== undefined ? [item.sourceIndex] : []),
+      };
     }
   });
 

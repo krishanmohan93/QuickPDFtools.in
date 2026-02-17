@@ -1,8 +1,10 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import * as XLSX from 'xlsx';
 
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Set up PDF.js worker (client only)
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
 
 export interface ConversionMetrics {
   tablesFound: number;
@@ -17,7 +19,10 @@ export interface ConversionMetrics {
 async function extractPDFContent(pdfBuffer: ArrayBuffer) {
   // Ensure we have a Uint8Array for pdfjs-dist
   const data = new Uint8Array(pdfBuffer);
-  const pdf = await pdfjsLib.getDocument(data).promise;
+  const pdf = await pdfjsLib.getDocument({
+    data,
+    disableWorker: typeof window === 'undefined',
+  }).promise;
   const pages: any[] = [];
 
   for (let i = 1; i <= pdf.numPages; i++) {
@@ -226,7 +231,10 @@ export async function convertPDFToExcelAdvanced(
   try {
     // Ensure we have a Uint8Array for pdfjs-dist
     const data = new Uint8Array(pdfBuffer);
-    const pdf = await pdfjsLib.getDocument(data).promise;
+    const pdf = await pdfjsLib.getDocument({
+      data,
+      disableWorker: typeof window === 'undefined',
+    }).promise;
     const allTables: any[] = [];
     let totalPages = 0;
 

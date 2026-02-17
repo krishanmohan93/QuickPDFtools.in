@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import DragDropUpload from "./DragDropUpload";
 
 export default function ProtectPDFTool() {
     const [file, setFile] = useState<File | null>(null);
     const [userPassword, setUserPassword] = useState("");
     const [ownerPassword, setOwnerPassword] = useState("");
+    const [showUserPassword, setShowUserPassword] = useState(false);
+    const [showOwnerPassword, setShowOwnerPassword] = useState(false);
     const [permissions, setPermissions] = useState({
         print: true,
         copy: true,
@@ -15,6 +18,8 @@ export default function ProtectPDFTool() {
     });
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [permissionToast, setPermissionToast] = useState<string | null>(null);
 
     const handleFileSelect = (selectedFiles: File[]) => {
         const selectedFile = selectedFiles[0];
@@ -25,13 +30,14 @@ export default function ProtectPDFTool() {
     const protectPDF = async () => {
         if (!file) return;
 
-        if (!userPassword && !ownerPassword) {
-            alert("Please provide at least one password");
+        if (!userPassword) {
+            alert("User password is required to open the PDF");
             return;
         }
 
         setIsProcessing(true);
         setProgress(0);
+        setErrorMessage(null);
 
         try {
             setProgress(20);
@@ -59,8 +65,17 @@ export default function ProtectPDFTool() {
             setProgress(60);
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Protection failed');
+                let message = "Protection failed";
+                try {
+                    const error = await response.json();
+                    message = error.error || message;
+                } catch {
+                    // ignore parse errors
+                }
+                setErrorMessage(message);
+                setProgress(0);
+                setIsProcessing(false);
+                return;
             }
 
             // Download protected PDF
@@ -74,6 +89,15 @@ export default function ProtectPDFTool() {
 
             setProgress(100);
 
+            const hasRestrictions =
+                !permissions.print || !permissions.copy || !permissions.modify || !permissions.annotate;
+            if (hasRestrictions) {
+                setPermissionToast(
+                    "Permissions are restricted. Some PDF viewers (especially browser previews) may ignore these limits. Verify in Adobe Acrobat or another full PDF reader."
+                );
+                setTimeout(() => setPermissionToast(null), 6000);
+            }
+
             // Reset form
             setTimeout(() => {
                 setFile(null);
@@ -84,8 +108,8 @@ export default function ProtectPDFTool() {
             }, 1000);
 
         } catch (error) {
-            console.error("Error protecting PDF:", error);
-            alert(`Failed to protect PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            const message = error instanceof Error ? error.message : "Unknown error";
+            setErrorMessage(`Failed to protect PDF: ${message}`);
             setProgress(0);
         } finally {
             setIsProcessing(false);
@@ -94,6 +118,28 @@ export default function ProtectPDFTool() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 p-8">
+            {permissionToast && (
+                <div
+                    className="message-toast fixed top-6 right-6 z-50 max-w-sm rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-lg"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="text-amber-600">⚠️</div>
+                        <div className="text-sm text-amber-900">
+                            {permissionToast}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setPermissionToast(null)}
+                            className="ml-auto text-amber-700 hover:text-amber-900"
+                            aria-label="Dismiss warning"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">
@@ -119,6 +165,21 @@ export default function ProtectPDFTool() {
                             borderColor="border-red-300"
                             hoverColor="border-red-500 bg-red-50"
                         />
+                    </div>
+                )}
+
+                {!file && (
+                    <div className="mt-8 bg-pink-50 rounded-2xl p-8 border-2 border-pink-200">
+                        <h3 className="text-xl font-bold text-pink-900 mb-4">
+                            📖 How to use:
+                        </h3>
+                        <ol className="space-y-2 text-pink-800">
+                            <li>1. Upload a PDF file</li>
+                            <li>2. Set a user password (required to open the PDF)</li>
+                            <li>3. Optionally set an owner password for editing permissions</li>
+                            <li>4. Choose which permissions to allow</li>
+                            <li>5. Click "Protect PDF" to download the protected file</li>
+                        </ol>
                     </div>
                 )}
 
@@ -161,14 +222,25 @@ export default function ProtectPDFTool() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         User Password (Required to open the PDF)
                                     </label>
-                                    <input
-                                        type="password"
-                                        value={userPassword}
-                                        onChange={(e) => setUserPassword(e.target.value)}
-                                        placeholder="Enter password"
-                                        disabled={isProcessing}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-gray-900"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showUserPassword ? "text" : "password"}
+                                            value={userPassword}
+                                            onChange={(e) => setUserPassword(e.target.value)}
+                                            placeholder="Enter password"
+                                            disabled={isProcessing}
+                                            className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-gray-900"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowUserPassword((prev) => !prev)}
+                                            disabled={isProcessing}
+                                            aria-label={showUserPassword ? "Hide user password" : "Show user password"}
+                                            className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                        >
+                                            {showUserPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
+                                    </div>
                                     <p className="text-xs text-gray-500 mt-1">
                                         Users will need this password to view the PDF
                                     </p>
@@ -179,14 +251,25 @@ export default function ProtectPDFTool() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Owner Password (Optional - for editing permissions)
                                     </label>
-                                    <input
-                                        type="password"
-                                        value={ownerPassword}
-                                        onChange={(e) => setOwnerPassword(e.target.value)}
-                                        placeholder="Enter owner password"
-                                        disabled={isProcessing}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-gray-900"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showOwnerPassword ? "text" : "password"}
+                                            value={ownerPassword}
+                                            onChange={(e) => setOwnerPassword(e.target.value)}
+                                            placeholder="Enter owner password"
+                                            disabled={isProcessing}
+                                            className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none bg-white text-gray-900"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowOwnerPassword((prev) => !prev)}
+                                            disabled={isProcessing}
+                                            aria-label={showOwnerPassword ? "Hide owner password" : "Show owner password"}
+                                            className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                                        >
+                                            {showOwnerPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                        </button>
+                                    </div>
                                     <p className="text-xs text-gray-500 mt-1">
                                         Owner password allows changing permissions
                                     </p>
@@ -255,11 +338,23 @@ export default function ProtectPDFTool() {
                                     </div>
                                 </label>
                             </div>
+                            <p className="text-xs text-gray-500 mt-4">
+                                Note: Permissions are enforced by PDF readers. Some browser previews may ignore these
+                                restrictions—use a full PDF reader (e.g., Adobe Acrobat) to verify them.
+                            </p>
                         </div>
 
-                        {/* Progress */}
-                        {isProcessing && (
-                            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                {/* Error */}
+                {errorMessage && (
+                    <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8" role="alert">
+                        <h4 className="text-red-900 font-semibold mb-2">⚠️ Error</h4>
+                        <p className="text-red-700">{errorMessage}</p>
+                    </div>
+                )}
+
+                {/* Progress */}
+                {isProcessing && (
+                    <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
                                 <div className="mb-4 text-center">
                                     <div className="text-xl font-semibold text-gray-700 mb-2">
                                         Protecting PDF...
@@ -301,20 +396,6 @@ export default function ProtectPDFTool() {
                         <li>• All processing is done securely - your files are never stored</li>
                         <li>• Keep your passwords safe - they cannot be recovered if lost</li>
                     </ul>
-                </div>
-
-                {/* Instructions */}
-                <div className="mt-8 bg-pink-50 rounded-2xl p-8 border-2 border-pink-200">
-                    <h3 className="text-xl font-bold text-pink-900 mb-4">
-                        📖 How to use:
-                    </h3>
-                    <ol className="space-y-2 text-pink-800">
-                        <li>1. Upload a PDF file</li>
-                        <li>2. Set a user password (required to open the PDF)</li>
-                        <li>3. Optionally set an owner password for editing permissions</li>
-                        <li>4. Choose which permissions to allow</li>
-                        <li>5. Click "Protect PDF" to download the protected file</li>
-                    </ol>
                 </div>
             </div>
         </div>

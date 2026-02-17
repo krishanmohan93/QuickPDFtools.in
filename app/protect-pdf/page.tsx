@@ -35,6 +35,43 @@ export default function ProtectPDFPage() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
             <ProtectPDFTool />
+
+            {/* SEO Content Section */}
+            <section className="bg-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                    <div className="bg-white rounded-2xl p-8 border-2 border-gray-200">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                            Protect PDF Files with Passwords
+                        </h2>
+                        <div className="prose max-w-none text-gray-700 space-y-4">
+                            <p>
+                                Protect PDFs by adding a user password for opening and an owner password to control
+                                permissions such as printing, copying, or editing. This helps keep sensitive files
+                                secure while maintaining a professional, print‑ready document.
+                            </p>
+
+                            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+                                How to Protect a PDF
+                            </h3>
+                            <ul className="list-disc pl-6 space-y-2">
+                                <li>Upload your PDF file</li>
+                                <li>Set a user password (required to open the PDF)</li>
+                                <li>Optional: set an owner password and choose permissions</li>
+                                <li>Click protect and download the secured PDF</li>
+                            </ul>
+
+                            <p className="mt-4">
+                                Need to remove a password? Use our{" "}
+                                <a href="/unlock-pdf" className="text-blue-600 hover:underline">Unlock PDF</a> tool.
+                                You can also{" "}
+                                <a href="/merge-pdf" className="text-blue-600 hover:underline">merge PDF files</a> or{" "}
+                                <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDFs</a>{" "}
+                                after protecting them.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </>
     );
 }

@@ -1,9 +1,9 @@
 // PDF Processing Web Worker
 // Handles heavy PDF operations off the main thread
 
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js');
+importScripts('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
 
-// Configure PDF.js worker
+// Configure PDF.js worker (disable nested worker inside this worker)
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
@@ -172,6 +172,8 @@ async function extractTextFromPage(pageNum, scale = 1.5) {
         transform,
         pageNumber: pageNum,
         originalText: item.str,
+        sourceIndex: index,
+        sourceIndexes: [index],
       };
     }).filter(Boolean);
 
@@ -265,7 +267,11 @@ function mergeTextItems(items, scale) {
 
   sorted.forEach((item) => {
     if (!currentBlock) {
-      currentBlock = { ...item, originalItems: [item] };
+      currentBlock = {
+        ...item,
+        originalItems: [item],
+        sourceIndexes: item.sourceIndexes || (typeof item.sourceIndex === 'number' ? [item.sourceIndex] : []),
+      };
       return;
     }
 
@@ -287,9 +293,15 @@ function mergeTextItems(items, scale) {
       currentBlock.width = newRight - currentBlock.x;
       if (!currentBlock.originalItems) currentBlock.originalItems = [];
       currentBlock.originalItems.push(item);
+      const nextSources = item.sourceIndexes || (typeof item.sourceIndex === 'number' ? [item.sourceIndex] : []);
+      currentBlock.sourceIndexes = Array.from(new Set([...(currentBlock.sourceIndexes || []), ...nextSources]));
     } else {
       merged.push(currentBlock);
-      currentBlock = { ...item, originalItems: [item] };
+      currentBlock = {
+        ...item,
+        originalItems: [item],
+        sourceIndexes: item.sourceIndexes || (typeof item.sourceIndex === 'number' ? [item.sourceIndex] : []),
+      };
     }
   });
 

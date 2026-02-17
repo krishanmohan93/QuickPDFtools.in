@@ -1,8 +1,287 @@
 "use client";
 
 import { useState } from "react";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { marked } from "marked";
+import Prism from "prismjs";
+import "prismjs/components/prism-python";
+import AnsiToHtml from "ansi-to-html";
 
+const ansiConverter = new AnsiToHtml({ escapeXML: true });
+
+const escapeHtml = (value: string) =>
+    value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+const normalizeText = (value?: string | string[]) =>
+    Array.isArray(value) ? value.join("") : value ?? "";
+
+const highlightCode = (code: string, language: string) => {
+    const lang = language && Prism.languages[language] ? language : "python";
+    const grammar = Prism.languages[lang] || Prism.languages.python;
+    return Prism.highlight(code, grammar, lang);
+};
+
+const markdownRenderer = new marked.Renderer();
+markdownRenderer.code = (code, info) => {
+    const language = (info || "").split(/\s+/)[0] || "python";
+    const highlighted = highlightCode(code, language);
+    return `<pre class="jp-code jp-markdown-code"><code class="language-${language}">${highlighted}</code></pre>`;
+};
+
+marked.use({
+    renderer: markdownRenderer,
+    gfm: true,
+    breaks: false,
+    headerIds: false,
+    mangle: false,
+});
+
+const buildNotebookStyles = () => `
+@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #ffffff;
+  color: #111827;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 11pt;
+}
+.nb-root { width: 180mm; margin: 0 auto; padding: 0; }
+.nb-header { border-bottom: 1px solid #d0d0d0; margin-bottom: 12px; padding-bottom: 8px; }
+.nb-title { font-size: 16pt; font-weight: 600; letter-spacing: -0.01em; }
+.nb-meta { font-size: 9pt; color: #6b7280; margin-top: 4px; }
+.jp-cell {
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  column-gap: 10px;
+  margin: 10px 0;
+  page-break-inside: avoid;
+}
+.jp-cell-label {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 9pt;
+  color: #1f4b99;
+  text-align: right;
+  padding-top: 3px;
+}
+.jp-cell-output-label { color: #a11a1a; }
+.jp-cell-input {
+  background: #f7f7f7;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 6px 8px;
+}
+.jp-cell-output {
+  grid-column: 2 / -1;
+}
+.jp-output {
+  background: #f7f7f7;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-top: 6px;
+  font-size: 9.5pt;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.jp-output-stream { background: #f7f7f7; }
+.jp-output-error { background: #fff2f2; border-color: #f2b8b8; color: #7f1d1d; }
+.jp-output-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #ffffff;
+  padding: 4px;
+}
+.jp-output table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+.jp-output th, .jp-output td { border: 1px solid #dcdcdc; padding: 4px 6px; text-align: left; }
+.jp-markdown {
+  display: block;
+  margin-left: 68px;
+  font-size: 10.5pt;
+  line-height: 1.6;
+  color: #111827;
+}
+.jp-markdown h1 { font-size: 15pt; margin: 14px 0 8px; }
+.jp-markdown h2 { font-size: 13pt; margin: 12px 0 6px; }
+.jp-markdown h3 { font-size: 11pt; margin: 10px 0 5px; }
+.jp-markdown p { margin: 5px 0; }
+.jp-markdown ul, .jp-markdown ol { padding-left: 18px; margin: 6px 0; }
+.jp-markdown code {
+  background: #f2f2f2;
+  border-radius: 3px;
+  padding: 0 3px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 9.5pt;
+}
+.jp-markdown blockquote { border-left: 3px solid #dcdcdc; margin: 8px 0; padding: 4px 8px; color: #4b5563; }
+.jp-markdown table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 8px 0; }
+.jp-markdown th, .jp-markdown td { border: 1px solid #dcdcdc; padding: 4px 6px; text-align: left; }
+.jp-code {
+  margin: 0;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.token.comment { color: #6b7280; font-style: italic; }
+.token.keyword { color: #1d4ed8; font-weight: 600; }
+.token.string { color: #b91c1c; }
+.token.number { color: #0f766e; }
+.token.function { color: #0ea5e9; }
+.token.operator { color: #374151; }
+.token.boolean, .token.constant { color: #a16207; }
+.token.class-name { color: #7c2d12; }
+.page-break { page-break-after: always; }
+`;
+
+const renderOutputData = (data: Record<string, any>) => {
+    if (!data) return "";
+    if (data["image/png"]) {
+        return `<img class="jp-output-image" src="data:image/png;base64,${data["image/png"]}" alt="Output image" />`;
+    }
+    if (data["image/jpeg"]) {
+        return `<img class="jp-output-image" src="data:image/jpeg;base64,${data["image/jpeg"]}" alt="Output image" />`;
+    }
+    if (data["image/svg+xml"]) {
+        const svgText = normalizeText(data["image/svg+xml"]);
+        const encoded = encodeURIComponent(svgText);
+        return `<img class="jp-output-image" src="data:image/svg+xml,${encoded}" alt="Output image" />`;
+    }
+    if (data["text/html"]) {
+        return `<div class="jp-output">${normalizeText(data["text/html"])}</div>`;
+    }
+    if (data["text/plain"]) {
+        return `<pre class="jp-output jp-output-stream">${escapeHtml(normalizeText(data["text/plain"]))}</pre>`;
+    }
+    if (data["text/markdown"]) {
+        const html = marked.parse(normalizeText(data["text/markdown"])) as string;
+        return `<div class="jp-output">${html}</div>`;
+    }
+    if (data["application/json"]) {
+        const jsonText = JSON.stringify(data["application/json"], null, 2);
+        return `<pre class="jp-output jp-output-stream">${escapeHtml(jsonText)}</pre>`;
+    }
+    return "";
+};
+
+const renderOutputs = (outputs: any[]) => {
+    if (!outputs || outputs.length === 0) return "";
+    const blocks = outputs.map((output) => {
+        if (output.output_type === "stream") {
+            const text = normalizeText(output.text);
+            return `<pre class="jp-output jp-output-stream">${escapeHtml(text)}</pre>`;
+        }
+        if (output.output_type === "error") {
+            const traceback = normalizeText(output.traceback);
+            const html = ansiConverter.toHtml(traceback);
+            return `<pre class="jp-output jp-output-error">${html}</pre>`;
+        }
+        if (output.output_type === "execute_result" || output.output_type === "display_data") {
+            return renderOutputData(output.data);
+        }
+        return "";
+    });
+    const content = blocks.filter(Boolean).join("");
+    if (!content) return "";
+    return content;
+};
+
+const buildNotebookHtml = (notebook: any, fileName: string) => {
+    const cells = notebook?.cells || [];
+    const title = fileName.replace(/\.(ipynb|py)$/i, "");
+    const createdAt = new Date().toLocaleString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+
+    const renderedCells = cells
+        .map((cell: any, index: number) => {
+            const source = normalizeText(cell.source);
+            if (!source.trim()) return "";
+
+            if (cell.cell_type === "markdown") {
+                const html = marked.parse(source) as string;
+                return `<section class="jp-cell jp-markdown">${html}</section>`;
+            }
+
+            if (cell.cell_type === "code") {
+                const execution = cell.execution_count ?? " ";
+                const codeHtml = highlightCode(source, "python");
+                const outputsHtml = renderOutputs(cell.outputs || []);
+                return `
+                <section class="jp-cell">
+                  <div class="jp-cell-label">In [${execution}]:</div>
+                  <div class="jp-cell-input">
+                    <pre class="jp-code"><code class="language-python">${codeHtml}</code></pre>
+                  </div>
+                  ${outputsHtml ? `<div class="jp-cell-label jp-cell-output-label">Out [${execution}]:</div>` : ""}
+                  ${outputsHtml ? `<div class="jp-cell-output">${outputsHtml}</div>` : ""}
+                </section>`;
+            }
+
+            return "";
+        })
+        .filter(Boolean)
+        .join("");
+
+    return `
+      <div class="nb-root">
+        <header class="nb-header">
+          <div class="nb-title">${escapeHtml(title)}</div>
+          <div class="nb-meta">Generated on ${escapeHtml(createdAt)}</div>
+        </header>
+        ${renderedCells}
+      </div>
+    `;
+};
+
+const buildPythonHtml = (source: string, fileName: string) => {
+    const title = fileName.replace(/\.(ipynb|py)$/i, "");
+    const createdAt = new Date().toLocaleString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+    });
+    const highlighted = highlightCode(source, "python");
+    return `
+      <div class="nb-root">
+        <header class="nb-header">
+          <div class="nb-title">${escapeHtml(title)}</div>
+          <div class="nb-meta">Generated on ${escapeHtml(createdAt)}</div>
+        </header>
+        <section class="jp-cell">
+          <div class="jp-cell-label">In [ ]:</div>
+          <div class="jp-cell-input">
+            <pre class="jp-code"><code class="language-python">${highlighted}</code></pre>
+          </div>
+        </section>
+      </div>
+    `;
+};
+
+const buildHtmlDocument = (bodyHtml: string) => `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>${buildNotebookStyles()}</style>
+  </head>
+  <body>
+    ${bodyHtml}
+  </body>
+</html>
+`;
 export default function PythonJupyterToPDFTool() {
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -50,6 +329,102 @@ export default function PythonJupyterToPDFTool() {
         e.preventDefault();
     };
 
+    const renderHtmlToPdf = async (html: string, baseName: string) => {
+        const html2pdfModule: any = await import("html2pdf.js");
+        const html2pdf = html2pdfModule.default || html2pdfModule;
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.left = "-10000px";
+        iframe.style.top = "0";
+        iframe.style.width = "210mm";
+        iframe.style.height = "297mm";
+        iframe.style.border = "0";
+        iframe.style.background = "#ffffff";
+        iframe.setAttribute("aria-hidden", "true");
+        document.body.appendChild(iframe);
+
+        let iframeDoc: Document | null = null;
+        try {
+            iframeDoc = iframe.contentDocument || iframe.contentWindow?.document || null;
+            if (!iframeDoc) {
+                throw new Error("Failed to initialize PDF renderer.");
+            }
+
+            iframeDoc.open();
+            iframeDoc.write(html);
+            iframeDoc.close();
+
+            const waitForImages = async () => {
+                const images = Array.from(iframeDoc?.querySelectorAll("img") || []);
+                if (images.length === 0) return;
+                await Promise.all(
+                    images.map(
+                        (img) =>
+                            new Promise<void>((resolve) => {
+                                const image = img as HTMLImageElement;
+                                if (image.complete) return resolve();
+                                image.onload = () => resolve();
+                                image.onerror = () => resolve();
+                            })
+                    )
+                );
+            };
+
+            try {
+                const fonts = (iframeDoc as any).fonts;
+                if (fonts && "ready" in fonts) {
+                    await fonts.ready;
+                }
+            } catch {
+                // ignore font loading errors
+            }
+
+            await waitForImages();
+            await new Promise<void>((resolve) => {
+                requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+            });
+
+            const target = iframeDoc.body;
+            const bounds = target.getBoundingClientRect();
+            const width = Math.max(target.scrollWidth, bounds.width, 794);
+            const height = Math.max(target.scrollHeight, bounds.height, 1123);
+
+            const pdfBlob = await html2pdf()
+                .set({
+                    margin: [12, 10, 12, 10],
+                    filename: `${baseName}.pdf`,
+                    image: { type: "jpeg", quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: "#ffffff",
+                        letterRendering: true,
+                        windowWidth: Math.ceil(width),
+                        windowHeight: Math.ceil(height),
+                        scrollY: 0,
+                        scrollX: 0,
+                    },
+                    jsPDF: {
+                        unit: "mm",
+                        format: "a4",
+                        orientation: "portrait",
+                        compress: true,
+                    },
+                    pagebreak: { mode: ["css", "legacy"] },
+                })
+                .from(target)
+                .outputPdf("blob");
+
+            if (pdfBlob.size < 1500) {
+                throw new Error("Generated PDF is empty. Please try again.");
+            }
+
+            return pdfBlob;
+        } finally {
+            document.body.removeChild(iframe);
+        }
+    };
+
     const convertToPDF = async () => {
         if (!file) return;
 
@@ -59,530 +434,39 @@ export default function PythonJupyterToPDFTool() {
 
         try {
             setProgress(10);
+            const formData = new FormData();
+            formData.append("file", file);
 
-            const fileContent = await file.text();
-            setProgress(20);
+            setProgress(35);
+            const response = await fetch("/api/convert-jupyter-to-pdf", {
+                method: "POST",
+                body: formData,
+            });
 
-            const sanitizeText = (text: string): string => {
-                return text
-                    .replace(/→/g, '->')
-                    .replace(/←/g, '<-')
-                    .replace(/↑/g, '^')
-                    .replace(/↓/g, 'v')
-                    .replace(/'/g, "'")
-                    .replace(/'/g, "'")
-                    .replace(/"/g, '"')
-                    .replace(/"/g, '"')
-                    .replace(/—/g, '--')
-                    .replace(/–/g, '-')
-                    .replace(/…/g, '...')
-                    .replace(/[^\x20-\x7E\t\n\r]/g, '');
-            };
-
-            const pdfDoc = await PDFDocument.create();
-            const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-            const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-            const courier = await pdfDoc.embedFont(StandardFonts.Courier);
-            const courierBold = await pdfDoc.embedFont(StandardFonts.CourierBold);
-
-            const margin = 70;
-            const pageWidth = 595;
-            const pageHeight = 842;
-            const contentWidth = pageWidth - 2 * margin;
-            const lineHeight = 20;
-            let sectionCounter = 0;
-
-            let currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-            let yPosition = pageHeight - margin;
-
-            setProgress(30);
-
-            const checkNewPage = (spaceNeeded: number) => {
-                if (yPosition - spaceNeeded < margin + 30) {
-                    currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-                    yPosition = pageHeight - margin;
-                    return true;
+            if (!response.ok) {
+                const contentType = response.headers.get("content-type") || "";
+                if (contentType.includes("application/json")) {
+                    const errorPayload = await response.json();
+                    throw new Error(errorPayload?.error || "Conversion failed.");
                 }
-                return false;
-            };
-
-            const drawText = (text: string, options: {
-                size?: number;
-                font?: any;
-                color?: any;
-                indent?: number;
-                bold?: boolean;
-                maxWidth?: number;
-            } = {}) => {
-                const { size = 12, font = helvetica, color = rgb(0, 0, 0), indent = 0, bold = false, maxWidth = contentWidth - indent } = options;
-                const actualFont = bold ? helveticaBold : font;
-
-                // Word wrap for long text
-                const words = text.split(' ');
-                let currentLine = '';
-                const lines: string[] = [];
-
-                words.forEach(word => {
-                    const testLine = currentLine + (currentLine ? ' ' : '') + word;
-                    // Sanitize before measuring to avoid encoding errors
-                    const sanitizedTest = sanitizeText(testLine);
-                    const textWidth = actualFont.widthOfTextAtSize(sanitizedTest, size);
-
-                    if (textWidth > maxWidth && currentLine) {
-                        lines.push(currentLine);
-                        currentLine = word;
-                    } else {
-                        currentLine = testLine;
-                    }
-                });
-                if (currentLine) lines.push(currentLine);
-
-                lines.forEach((line, idx) => {
-                    checkNewPage(size + 8);
-                    currentPage.drawText(sanitizeText(line), {
-                        x: margin + indent,
-                        y: yPosition,
-                        size: size,
-                        font: actualFont,
-                        color: color,
-                    });
-                    yPosition -= size + 8;
-                });
-            };
-
-            const drawHeading = (text: string, level: number = 1, numbered: boolean = false) => {
-                const sizes = [22, 18, 15, 13];
-                const size = sizes[level - 1] || 13;
-                const topSpace = level === 1 ? 30 : 22;
-
-                checkNewPage(size + topSpace + 15);
-                yPosition -= topSpace;
-
-                let displayText = text;
-                if (numbered && level === 2) {
-                    sectionCounter++;
-                    displayText = `Step ${sectionCounter}: ${text}`;
-                }
-
-                currentPage.drawText(sanitizeText(displayText), {
-                    x: margin,
-                    y: yPosition,
-                    size: size,
-                    font: helveticaBold,
-                    color: rgb(0, 0, 0),
-                });
-                yPosition -= size + 15;
-            };
-
-            const drawCodeBlock = (code: string, showLineNumbers: boolean = false) => {
-                const lines = code.split('\n');
-                const lineSpacing = 16;
-                const codeBoxPadding = 20;
-                const codeBoxHeight = (lines.length * lineSpacing) + (codeBoxPadding * 2);
-
-                checkNewPage(codeBoxHeight + 20);
-
-                // Draw clean code background
-                currentPage.drawRectangle({
-                    x: margin - 10,
-                    y: yPosition - codeBoxHeight + 10,
-                    width: contentWidth + 20,
-                    height: codeBoxHeight,
-                    color: rgb(0.96, 0.96, 0.97), // Light gray background
-                });
-
-                yPosition -= codeBoxPadding;
-
-                lines.forEach((line, index) => {
-                    if (yPosition < margin + 20) {
-                        currentPage = pdfDoc.addPage([pageWidth, pageHeight]);
-                        yPosition = pageHeight - margin;
-                    }
-
-                    const trimmedLine = line.trim();
-
-                    // Tokenize the line for better syntax highlighting
-                    const tokens: Array<{ text: string, color: any, font: any }> = [];
-                    let remaining = line;
-                    let indentSpaces = line.length - trimmedLine.length;
-
-                    // Add indent spaces
-                    if (indentSpaces > 0) {
-                        tokens.push({ text: ' '.repeat(indentSpaces), color: rgb(0, 0, 0), font: courier });
-                    }
-
-                    // Comments - everything after # is green
-                    if (trimmedLine.startsWith('#')) {
-                        tokens.push({
-                            text: trimmedLine,
-                            color: rgb(0.35, 0.65, 0.35), // Green comments
-                            font: courier
-                        });
-                    } else {
-                        // Split by strings first to preserve them
-                        const stringRegex = /(['"])(?:(?=(\\?))\2.)*?\1/g;
-                        const strings: Array<{ text: string, index: number }> = [];
-                        let match;
-
-                        while ((match = stringRegex.exec(trimmedLine)) !== null) {
-                            strings.push({ text: match[0], index: match.index });
-                        }
-
-                        // Keywords to highlight
-                        const keywords = ['def', 'class', 'if', 'else', 'elif', 'for', 'while', 'return',
-                            'import', 'from', 'as', 'with', 'try', 'except', 'finally',
-                            'in', 'not', 'and', 'or', 'is', 'None', 'True', 'False',
-                            'break', 'continue', 'pass', 'lambda', 'yield'];
-
-                        const builtins = ['print', 'len', 'range', 'str', 'int', 'float', 'list',
-                            'dict', 'set', 'tuple', 'open', 'enumerate', 'zip'];
-
-                        // Process line with syntax highlighting
-                        let currentPos = 0;
-                        let processedLine = '';
-
-                        // Simple tokenization
-                        const words = trimmedLine.split(/(\s+|[(),\[\]{}=+\-*/<>!.])/);
-
-                        for (const word of words) {
-                            if (!word) continue;
-
-                            // Check if this position is inside a string
-                            const isInString = strings.some(s =>
-                                currentPos >= s.index && currentPos < s.index + s.text.length
-                            );
-
-                            if (isInString) {
-                                // Find the full string
-                                const str = strings.find(s => currentPos >= s.index && currentPos < s.index + s.text.length);
-                                if (str && currentPos === str.index) {
-                                    tokens.push({
-                                        text: str.text,
-                                        color: rgb(0.8, 0.4, 0.1), // Orange strings
-                                        font: courier
-                                    });
-                                    currentPos += str.text.length;
-                                }
-                                continue;
-                            }
-
-                            // Numbers
-                            if (/^\d+\.?\d*$/.test(word)) {
-                                tokens.push({
-                                    text: word,
-                                    color: rgb(0.1, 0.5, 0.8), // Blue numbers
-                                    font: courier
-                                });
-                            }
-                            // Keywords
-                            else if (keywords.includes(word)) {
-                                tokens.push({
-                                    text: word,
-                                    color: rgb(0.7, 0.1, 0.5), // Purple keywords
-                                    font: courierBold
-                                });
-                            }
-                            // Built-in functions
-                            else if (builtins.includes(word)) {
-                                tokens.push({
-                                    text: word,
-                                    color: rgb(0.2, 0.4, 0.8), // Blue built-ins
-                                    font: courier
-                                });
-                            }
-                            // Functions (word followed by '(')
-                            else if (words[words.indexOf(word) + 1] === '(') {
-                                tokens.push({
-                                    text: word,
-                                    color: rgb(0.1, 0.5, 0.6), // Teal functions
-                                    font: courier
-                                });
-                            }
-                            // Operators and punctuation
-                            else if (/^[(),\[\]{}=+\-*/<>!.:]+$/.test(word)) {
-                                tokens.push({
-                                    text: word,
-                                    color: rgb(0.3, 0.3, 0.3), // Gray operators
-                                    font: courier
-                                });
-                            }
-                            // Default text
-                            else {
-                                tokens.push({
-                                    text: word,
-                                    color: rgb(0.1, 0.1, 0.2), // Dark gray text
-                                    font: courier
-                                });
-                            }
-
-                            currentPos += word.length;
-                        }
-                    }
-
-                    // Line number
-                    if (showLineNumbers) {
-                        currentPage.drawText(`${(index + 1).toString().padStart(3, ' ')} `, {
-                            x: margin,
-                            y: yPosition,
-                            size: 10,
-                            font: courier,
-                            color: rgb(0.5, 0.5, 0.5),
-                        });
-                    }
-
-                    // Draw all tokens
-                    let xOffset = margin + (showLineNumbers ? 40 : 12);
-                    for (const token of tokens) {
-                        const displayText = sanitizeText(token.text);
-                        if (displayText) {
-                            currentPage.drawText(displayText, {
-                                x: xOffset,
-                                y: yPosition,
-                                size: 10,
-                                font: token.font,
-                                color: token.color,
-                            });
-                            xOffset += courier.widthOfTextAtSize(displayText, 10);
-                        }
-                    }
-
-                    yPosition -= lineSpacing;
-                });
-
-                yPosition -= 12;
-            };
-
-            const drawBullet = (text: string, level: number = 0) => {
-                const indent = level * 20;
-                const bullet = level === 0 ? '•' : (level === 1 ? '◦' : '▪');
-
-                checkNewPage(18);
-
-                currentPage.drawText(bullet, {
-                    x: margin + indent,
-                    y: yPosition,
-                    size: 12,
-                    font: helvetica,
-                    color: rgb(0, 0, 0),
-                });
-
-                const maxWidth = contentWidth - indent - 18;
-                const words = text.split(' ');
-                let currentLine = '';
-                let lines: string[] = [];
-
-                words.forEach(word => {
-                    const testLine = currentLine + (currentLine ? ' ' : '') + word;
-                    const textWidth = helvetica.widthOfTextAtSize(sanitizeText(testLine), 12);
-
-                    if (textWidth > maxWidth && currentLine) {
-                        lines.push(currentLine);
-                        currentLine = word;
-                    } else {
-                        currentLine = testLine;
-                    }
-                });
-                if (currentLine) lines.push(currentLine);
-
-                lines.forEach((line, idx) => {
-                    currentPage.drawText(sanitizeText(line), {
-                        x: margin + indent + 18,
-                        y: yPosition,
-                        size: 12,
-                        font: helvetica,
-                        color: rgb(0, 0, 0),
-                    });
-
-                    if (idx < lines.length - 1) {
-                        yPosition -= 15;
-                        checkNewPage(15);
-                    }
-                });
-
-                yPosition -= 18;
-            };
-
-            const drawSeparator = () => {
-                checkNewPage(20);
-                yPosition -= 5;
-                currentPage.drawLine({
-                    start: { x: margin, y: yPosition },
-                    end: { x: pageWidth - margin, y: yPosition },
-                    thickness: 0.5,
-                    color: rgb(0.85, 0.85, 0.87),
-                });
-                yPosition -= 15;
-            };
-
-            // HEADER - Professional design
-            currentPage.drawRectangle({
-                x: 0,
-                y: pageHeight - 70,
-                width: pageWidth,
-                height: 70,
-                color: rgb(0.98, 0.98, 0.99),
-            });
-
-            // Title
-            const titleText = file.name.length > 60 ? file.name.substring(0, 57) + '...' : file.name;
-            currentPage.drawText(sanitizeText(titleText), {
-                x: margin,
-                y: pageHeight - 38,
-                size: 20,
-                font: helveticaBold,
-                color: rgb(0, 0, 0),
-            });
-
-            // Subtitle with date
-            const dateStr = new Date().toLocaleDateString('en-US', {
-                year: 'numeric', month: 'long', day: 'numeric'
-            });
-            currentPage.drawText(`Generated on ${dateStr}`, {
-                x: margin,
-                y: pageHeight - 55,
-                size: 10,
-                font: helvetica,
-                color: rgb(0.4, 0.4, 0.45),
-            });
-
-            yPosition = pageHeight - 95;
-
-            setProgress(40);
-
-            const isJupyter = file.name.endsWith('.ipynb');
-
-            if (isJupyter) {
-                const notebook = JSON.parse(fileContent);
-                const cells = notebook.cells || [];
-                let cellNumber = 1;
-
-                setProgress(50);
-
-                for (let i = 0; i < cells.length; i++) {
-                    const cell = cells[i];
-                    const cellType = cell.cell_type;
-                    const source = Array.isArray(cell.source) ? cell.source.join('') : cell.source;
-
-                    if (!source || source.trim().length === 0) continue;
-
-                    if (cellType === 'markdown') {
-                        const lines = source.split('\n');
-
-                        for (const line of lines) {
-                            const trimmed = line.trim();
-
-                            if (!trimmed) {
-                                yPosition -= 8;
-                                continue;
-                            }
-
-                            // Headings
-                            if (trimmed.startsWith('####')) {
-                                drawHeading(trimmed.replace(/^####\s*/, ''), 4, false);
-                            } else if (trimmed.startsWith('###')) {
-                                drawHeading(trimmed.replace(/^###\s*/, ''), 3, false);
-                            } else if (trimmed.startsWith('##')) {
-                                drawHeading(trimmed.replace(/^##\s*/, ''), 2, true); // Enable numbering for ## headings
-                            } else if (trimmed.startsWith('#')) {
-                                drawHeading(trimmed.replace(/^#\s*/, ''), 1, false);
-                            }
-                            // Bullets
-                            else if (trimmed.match(/^[•\-\*]\s+/)) {
-                                const indent = line.search(/\S/);
-                                const level = Math.floor(indent / 3);
-                                const text = trimmed.replace(/^[•\-\*]\s+/, '');
-                                drawBullet(text, level);
-                            }
-                            // Bold text
-                            else if (trimmed.match(/^\*\*.+\*\*$/)) {
-                                const text = trimmed.replace(/\*\*/g, '');
-                                drawText(text, { bold: true, size: 11 });
-                            }
-                            // Regular paragraph
-                            else {
-                                drawText(trimmed, { size: 10 });
-                            }
-                        }
-                    } else if (cellType === 'code') {
-                        // Code cell label - cleaner design
-                        checkNewPage(20);
-
-                        currentPage.drawText(`In [${cellNumber}]:`, {
-                            x: margin - 5,
-                            y: yPosition,
-                            size: 10,
-                            font: helveticaBold,
-                            color: rgb(0.25, 0.45, 0.65),
-                        });
-
-                        yPosition -= 18;
-
-                        drawCodeBlock(source, false);
-
-                        // Outputs
-                        if (cell.outputs && cell.outputs.length > 0) {
-                            checkNewPage(18);
-
-                            currentPage.drawText(`Out [${cellNumber}]:`, {
-                                x: margin - 5,
-                                y: yPosition,
-                                size: 10,
-                                font: helveticaBold,
-                                color: rgb(0.65, 0.25, 0.25),
-                            });
-
-                            yPosition -= 15;
-
-                            for (const output of cell.outputs.slice(0, 2)) {
-                                if (output.text) {
-                                    const outputText = Array.isArray(output.text) ? output.text.join('') : output.text;
-                                    const outputLines = outputText.split('\n').slice(0, 8);
-
-                                    outputLines.forEach(line => {
-                                        checkNewPage(13);
-                                        const displayLine = sanitizeText(line.length > 90 ? line.substring(0, 87) + '...' : line);
-                                        currentPage.drawText(displayLine, {
-                                            x: margin,
-                                            y: yPosition,
-                                            size: 9,
-                                            font: courier,
-                                            color: rgb(0.2, 0.2, 0.3),
-                                        });
-                                        yPosition -= 13;
-                                    });
-                                } else if (output.data && output.data['image/png']) {
-                                    drawText('[Image Output]', { size: 9, color: rgb(0.4, 0.4, 0.5) });
-                                } else if (output.name === 'stdout') {
-                                    drawText('[Standard Output]', { size: 9, color: rgb(0.4, 0.4, 0.5) });
-                                }
-                            }
-                        }
-
-                        cellNumber++;
-                        drawSeparator();
-                    }
-
-                    setProgress(50 + (i / cells.length) * 45);
-                }
-            } else {
-                // Python file
-                setProgress(50);
-                drawHeading('Python Script', 1);
-                drawCodeBlock(fileContent, true);
+                throw new Error("Conversion failed.");
             }
 
-            setProgress(95);
+            setProgress(70);
+            const pdfBlob = await response.blob();
+            if (pdfBlob.size < 1500) {
+                throw new Error("Generated PDF is empty. Please try again.");
+            }
 
-            const pdfBytes = await pdfDoc.save();
-            setProgress(100);
-
-            const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
+            if (downloadUrl) {
+                URL.revokeObjectURL(downloadUrl);
+            }
+            const url = URL.createObjectURL(pdfBlob);
             setDownloadUrl(url);
-
+            setProgress(100);
         } catch (err) {
-            console.error('Conversion error:', err);
-            setError('Failed to convert file. Please try again.');
+            console.error("Conversion error:", err);
+            setError(err instanceof Error ? err.message : "Failed to convert file. Please try again.");
         } finally {
             setIsProcessing(false);
         }
@@ -600,6 +484,9 @@ export default function PythonJupyterToPDFTool() {
 
     const handleReset = () => {
         setFile(null);
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setDownloadUrl(null);
         setProgress(0);
         setError(null);

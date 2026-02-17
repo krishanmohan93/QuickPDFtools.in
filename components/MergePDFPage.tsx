@@ -15,7 +15,7 @@ export default function MergePDFPage() {
                 outputFileName="merged.pdf"
                 instructions={[
                     "Upload multiple PDF files",
-                    "Files will be merged in the order you select them",
+                    "Drag files to arrange your preferred order",
                     "Click 'Process Files' to merge",
                     "Download your combined PDF document",
                 ]}
@@ -44,8 +44,8 @@ export default function MergePDFPage() {
                         </ul>
                         
                         <p className="mt-4">
-                            No registration is required, and the process is fast and secure. If you also need to
-                            <a href="/split-pdf" className="text-blue-600 hover:underline"> split PDF documents</a>
+                            No registration is required, and the process is fast and secure. If you also need to{" "}
+                            <a href="/split-pdf" className="text-blue-600 hover:underline">split PDF documents</a>{" "}
                             or <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDF files</a>,
                             explore our free PDF tools.
                         </p>

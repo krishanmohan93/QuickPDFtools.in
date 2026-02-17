@@ -15,6 +15,7 @@ class PDFWorkerManager {
   private messageId = 0;
   private pendingRequests = new Map<number, { resolve: Function; reject: Function }>();
   private workerLoaded = false;
+  private static readonly ENABLE_CUSTOM_PDF_WORKER = false; // PDF.js main build relies on window/document; fails inside our custom worker.
 
   constructor() {
     this.initializeWorker();
@@ -22,6 +23,7 @@ class PDFWorkerManager {
 
   private initializeWorker() {
     if (typeof window === 'undefined') return; // SSR safety
+    if (!PDFWorkerManager.ENABLE_CUSTOM_PDF_WORKER) return;
 
     try {
       this.worker = new Worker('/pdf-worker.js');
@@ -239,6 +241,8 @@ class PDFWorkerManager {
           height: item.height * scale,
           fontName, fontSize: fontSize * scale, fontWeight, fontStyle, fontFamily, color,
           transform, pageNumber: pageNum, originalText: item.str,
+          sourceIndex: index,
+          sourceIndexes: [index],
         };
       }).filter(Boolean);
 

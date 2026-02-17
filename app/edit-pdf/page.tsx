@@ -1,180 +1,73 @@
 import { Metadata } from "next";
 import EditPDFTool from "@/components/EditPDFTool";
-import { SITE_NAME, SITE_URL } from "@/lib/constants";
+import { generateToolMetadata } from "@/lib/metadata";
+import { SITE_URL } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: `Edit PDF Online – Preserve Fonts & Layout | ${SITE_NAME}`,
-  description: "Edit text in PDF files directly online while preserving original fonts, sizes, colors, and layout.",
-  keywords: "edit pdf, modify pdf, pdf editor, change pdf text, edit pdf online, pdf text editor",
-  alternates: {
-    canonical: `${SITE_URL}/edit-pdf`,
-  },
-};
+export const metadata: Metadata = generateToolMetadata("edit-pdf");
 
 export default function EditPDFPage() {
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: SITE_URL,
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: "Edit PDF",
-        item: `${SITE_URL}/edit-pdf`,
-      },
-    ],
-  };
+    const breadcrumbJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: SITE_URL,
+            },
+            {
+                "@type": "ListItem",
+                position: 2,
+                name: "Edit PDF",
+                item: `${SITE_URL}/edit-pdf`,
+            },
+        ],
+    };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-      />
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Edit PDF Online
-            </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Edit text directly in your PDF while preserving the original font, size, color, and layout. 
-              Professional-grade PDF editing in your browser.
-            </p>
-          </div>
+    return (
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+            />
+            <EditPDFTool />
 
-          {/* Tool Component */}
-          <EditPDFTool />
+            {/* SEO Content Section */}
+            <section className="bg-white">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                    <div className="bg-white rounded-2xl p-8 border-2 border-gray-200">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                            Edit PDF Text Online with Font Fidelity
+                        </h2>
+                        <div className="prose max-w-none text-gray-700 space-y-4">
+                            <p>
+                                The Edit PDF tool lets you change text directly inside your PDF while preserving the
+                                original font, size, spacing, and layout. This is ideal for certificates, business
+                                documents, and professional forms where even small visual changes can be noticeable.
+                            </p>
 
-          {/* Features Section */}
-          <div className="mt-16 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-indigo-600 text-2xl mb-3">🎨</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Font Preservation</h3>
-              <p className="text-gray-600 text-sm">
-                Maintains original fonts, sizes, colors, and styles. Automatically embeds fonts when needed.
-              </p>
-            </div>
+                            <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">
+                                How to Edit a PDF
+                            </h3>
+                            <ul className="list-disc pl-6 space-y-2">
+                                <li>Upload your PDF file</li>
+                                <li>Click on the text you want to edit</li>
+                                <li>Type your updated text and download the edited PDF</li>
+                            </ul>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-indigo-600 text-2xl mb-3">✏️</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Inline Editing</h3>
-              <p className="text-gray-600 text-sm">
-                Click directly on text to edit. Live preview with pixel-perfect positioning.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-indigo-600 text-2xl mb-3">🔍</div>
-              <h3 className="font-semibold text-gray-900 mb-2">OCR Support</h3>
-              <p className="text-gray-600 text-sm">
-                Automatically detects text in scanned PDFs using advanced OCR technology.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-indigo-600 text-2xl mb-3">📐</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Layout Integrity</h3>
-              <p className="text-gray-600 text-sm">
-                Preserves exact positioning, alignment, and spacing. No layout distortion.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-indigo-600 text-2xl mb-3">🔄</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Undo/Redo</h3>
-              <p className="text-gray-600 text-sm">
-                Full history tracking with unlimited undo and redo capabilities.
-              </p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-indigo-600 text-2xl mb-3">📄</div>
-              <h3 className="font-semibold text-gray-900 mb-2">Multi-Page Support</h3>
-              <p className="text-gray-600 text-sm">
-                Edit multiple pages seamlessly with smooth scrolling and navigation.
-              </p>
-            </div>
-          </div>
-
-          {/* How It Works */}
-          <div className="mt-16 bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-              How It Works
-            </h2>
-            <div className="grid md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="bg-indigo-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600 font-bold">
-                  1
+                            <p className="mt-4">
+                                Our editing engine replaces text in place, so your document stays clean and
+                                print‑ready. If you also need to{" "}
+                                <a href="/merge-pdf" className="text-blue-600 hover:underline">merge PDF files</a>,
+                                <a href="/compress-pdf" className="text-blue-600 hover:underline"> compress PDF files</a>,
+                                or <a href="/unlock-pdf" className="text-blue-600 hover:underline">unlock PDFs</a>,
+                                explore the rest of our tools.
+                            </p>
+                        </div>
+                    </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Upload PDF</h3>
-                <p className="text-sm text-gray-600">
-                  Select or drag and drop your PDF file
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-indigo-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600 font-bold">
-                  2
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Click Text</h3>
-                <p className="text-sm text-gray-600">
-                  Click on any text to start editing
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-indigo-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600 font-bold">
-                  3
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Make Changes</h3>
-                <p className="text-sm text-gray-600">
-                  Edit text while preserving original style
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-indigo-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600 font-bold">
-                  4
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Download</h3>
-                <p className="text-sm text-gray-600">
-                  Export your edited PDF instantly
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* SEO Content */}
-          <div className="mt-16 prose prose-gray max-w-none">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Professional PDF Text Editing Tool
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Our advanced PDF editor allows you to modify text directly in your PDF documents while maintaining 
-              the exact formatting, fonts, and layout of the original file. Unlike basic PDF editors that flatten 
-              or rasterize content, our tool preserves the PDF structure and embedded fonts.
-            </p>
-            <p className="text-gray-600 mb-4">
-              The editor uses advanced PDF parsing technology to detect text objects, extract font information, 
-              and enable precise inline editing. Each text element retains its original font family, size, weight, 
-              color, and positioning. When you edit text, the changes are applied directly to the PDF content stream, 
-              ensuring compatibility with all PDF readers including Adobe Acrobat.
-            </p>
-            <p className="text-gray-600">
-              Perfect for correcting typos, updating information, or making quick edits to PDF documents without 
-              needing expensive desktop software. Works entirely in your browser with no uploads to external servers.
-            </p>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+            </section>
+        </>
+    );
 }

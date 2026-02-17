@@ -28,10 +28,10 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       {/* Hero Section - Full Screen */}
-      <section className="relative bg-white min-h-screen transition-colors duration-300 flex items-center">
+      <section className="relative bg-white min-h-[calc(100svh-5rem)] sm:min-h-screen transition-colors duration-300 flex items-center">
         <AntigravityBackground />
         <div className="relative z-10 w-full px-6 sm:px-8 lg:px-12 xl:px-16">
-          <div className="max-w-5xl mx-auto text-center flex flex-col items-center -translate-y-[70px]">
+          <div className="max-w-4xl w-full mx-auto text-center flex flex-col items-center py-8 sm:py-0 sm:-translate-y-8 lg:-translate-y-[70px]">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium mb-6" style={{ backgroundColor: '#e8eef5', color: '#2563eb' }}>
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -39,28 +39,28 @@ export default function Home() {
               Free • No Registration • Secure
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight transition-colors duration-300">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-gray-900 mb-5 sm:mb-6 leading-tight transition-colors duration-300">
               QuickPDFTools - Fast PDF Tools Online
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 mb-10 leading-relaxed transition-colors duration-300">
+            <p className="text-base sm:text-lg md:text-2xl text-gray-600 mb-8 sm:mb-10 leading-relaxed transition-colors duration-300">
               QuickPDFTools is a set of quick PDF tools to merge PDF files, split PDF documents, compress, and convert in seconds.
               These PDF tools online run in your browser with no signup, no watermarks, and automatic file deletion.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-8 text-base text-gray-600 mb-12 transition-colors duration-300">
-              <span className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-sm sm:text-base text-gray-600 mb-10 sm:mb-12 transition-colors duration-300 w-full">
+              <span className="flex w-full sm:w-auto items-center justify-center gap-2 text-center">
                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 No signup needed
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex w-full sm:w-auto items-center justify-center gap-2 text-center">
                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
                 No watermarks
               </span>
-              <span className="flex items-center gap-2">
+              <span className="flex w-full sm:w-auto items-center justify-center gap-2 text-center">
                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>

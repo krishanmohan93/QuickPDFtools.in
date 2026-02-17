@@ -56,14 +56,14 @@ export default function Header() {
             <div className="w-full mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
                 <div className="flex items-center justify-between h-20">
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="w-14 h-14 flex items-center justify-center">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
                             <img
                                 src="/logo.png"
                                 alt={`${SITE_NAME} Logo`}
                                 className="w-full h-full object-contain"
                             />
                         </div>
-                        <span className="text-xl font-bold text-blue-600 transition-colors duration-300">
+                        <span className="text-lg sm:text-xl font-bold text-blue-600 transition-colors duration-300">
                             {SITE_NAME}
                         </span>
                     </Link>

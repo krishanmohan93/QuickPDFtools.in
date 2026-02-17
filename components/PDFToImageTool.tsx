@@ -172,6 +172,20 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                     </div>
                 )}
 
+                {!file && (
+                    <div className={`mt-8 ${theme.infoBg} rounded-2xl p-8 border-2 ${theme.infoBorder}`}>
+                        <h3 className={`text-xl font-bold ${theme.infoHeading} mb-4`}>
+                            📖 How to use:
+                        </h3>
+                        <ol className={`space-y-2 ${theme.infoText}`}>
+                            <li>1. Upload a PDF file</li>
+                            <li>2. Adjust quality and resolution settings</li>
+                            <li>3. Click "Convert to {formatName}"</li>
+                            <li>4. Each page will download as a separate {formatName} file</li>
+                        </ol>
+                    </div>
+                )}
+
                 {/* File Info & Options */}
                 {file && totalPages > 0 && (
                     <>
@@ -284,19 +298,6 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                         )}
                     </>
                 )}
-
-                {/* Instructions */}
-                <div className={`mt-12 ${theme.infoBg} rounded-2xl p-8 border-2 ${theme.infoBorder}`}>
-                    <h3 className={`text-xl font-bold ${theme.infoHeading} mb-4`}>
-                        📖 How to use:
-                    </h3>
-                    <ol className={`space-y-2 ${theme.infoText}`}>
-                        <li>1. Upload a PDF file</li>
-                        <li>2. Adjust quality and resolution settings</li>
-                        <li>3. Click "Convert to {formatName}"</li>
-                        <li>4. Each page will download as a separate {formatName} file</li>
-                    </ol>
-                </div>
             </div>
         </div>
     );
