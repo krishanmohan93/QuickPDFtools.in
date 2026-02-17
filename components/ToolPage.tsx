@@ -86,6 +86,71 @@ export default function ToolPage({
             return;
         }
 
+        const resolveDownloadFilename = (headerFilename?: string) => {
+            let filename = headerFilename || outputFileName;
+            if (!filename || filename === outputFileName) {
+                const originalFile = files[0];
+                if (originalFile) {
+                    const baseName = originalFile.name.replace(/\.[^/.]+$/, "");
+                    const extension = outputFileName.split(".").pop();
+                    filename = `${baseName}.${extension}`;
+                }
+            }
+            return filename;
+        };
+
+        if (toolId === "merge-pdf") {
+            if (files.length < 2) {
+                setStatus("error");
+                setMessage("Please select at least 2 PDF files to merge");
+                return;
+            }
+
+            setProcessing(true);
+            setProgress(0);
+            setStatus("processing");
+            setMessage("Merging your PDF files...");
+
+            try {
+                const { PDFDocument } = await import("pdf-lib");
+                const mergedPdf = await PDFDocument.create();
+
+                for (let i = 0; i < files.length; i += 1) {
+                    const file = files[i];
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await PDFDocument.load(arrayBuffer);
+                    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                    copiedPages.forEach((page) => mergedPdf.addPage(page));
+                    setProgress(Math.round(((i + 1) / files.length) * 100));
+                }
+
+                const mergedPdfBytes = await mergedPdf.save({
+                    useObjectStreams: false,
+                    addDefaultPage: false,
+                    objectsPerTick: 50,
+                    updateFieldAppearances: true,
+                });
+
+                const blob = new Blob([mergedPdfBytes], { type: "application/pdf" });
+                const url = URL.createObjectURL(blob);
+
+                const filename = resolveDownloadFilename();
+                setProgress(100);
+                setStatus("success");
+                setMessage("Processing complete! Your file is ready to download.");
+                setDownloadUrl(url);
+                (window as any).__downloadFilename = filename;
+            } catch (error) {
+                setStatus("error");
+                const errorMessage = error instanceof Error ? error.message : "Failed to merge PDF files. Please try again.";
+                setMessage(errorMessage);
+                console.error(error);
+            } finally {
+                setProcessing(false);
+            }
+            return;
+        }
+
         setProcessing(true);
         setProgress(0);
         setStatus("processing");
@@ -147,15 +212,7 @@ export default function ToolPage({
                 }
             }
 
-            // If no filename from header, generate from original file
-            if (!filename || filename === outputFileName) {
-                const originalFile = files[0];
-                if (originalFile) {
-                    const baseName = originalFile.name.replace(/\.[^/.]+$/, "");
-                    const extension = outputFileName.split('.').pop();
-                    filename = `${baseName}.${extension}`;
-                }
-            }
+            filename = resolveDownloadFilename(filename);
 
             setProgress(100);
             setStatus("success");
