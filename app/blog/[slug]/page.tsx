@@ -198,22 +198,6 @@ export default async function BlogPostPage({ params }: Props) {
                     </p>
                 </header>
 
-                {/* Table of Contents */}
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-12">
-                    <h2 className="text-lg font-bold text-gray-900 mb-3">Table of Contents</h2>
-                    <ul className="space-y-2 text-sm">
-                        <li>
-                            <a href="#introduction" className="text-gray-700 hover:text-gray-900 hover:underline">Introduction</a>
-                        </li>
-                        <li>
-                            <a href="#main-content" className="text-gray-700 hover:text-gray-900 hover:underline">Main Content</a>
-                        </li>
-                        <li>
-                            <a href="#conclusion" className="text-gray-700 hover:text-gray-900 hover:underline">Conclusion</a>
-                        </li>
-                    </ul>
-                </div>
-
                 {/* Article Content */}
                 <div
                     className="prose prose-lg max-w-none
