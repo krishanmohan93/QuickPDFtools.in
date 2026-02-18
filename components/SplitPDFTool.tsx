@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import DragDropUpload from "./DragDropUpload";
+import { sanitizeFileNamePart, splitFileName } from "@/lib/fileName";
 
 type SplitMode = "pages" | "range" | "every";
 
@@ -16,6 +17,7 @@ export default function SplitPDFTool() {
     const [everyN, setEveryN] = useState("1");
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [outputBaseName, setOutputBaseName] = useState("");
 
     const maxPages = Math.max(totalPages, 1);
     const parsePageValue = (value: string, fallback: number) => {
@@ -32,6 +34,8 @@ export default function SplitPDFTool() {
         if (!selectedFile) return;
 
         setFile(selectedFile);
+        const parts = splitFileName(selectedFile.name);
+        setOutputBaseName(parts.base || "split");
 
         // Load PDF to get page count
         try {
@@ -66,6 +70,7 @@ export default function SplitPDFTool() {
 
     const splitPDF = async () => {
         if (!file) return;
+        const safeBaseName = sanitizeFileNamePart(outputBaseName || "split");
 
         let pagesToExtract: number[][] = [];
 
@@ -125,11 +130,11 @@ export default function SplitPDFTool() {
                 const link = document.createElement("a");
                 link.href = url;
                 if (splitMode === "pages") {
-                    link.download = `page_${pages[0]}.pdf`;
+                    link.download = `${safeBaseName}_page_${pages[0]}.pdf`;
                 } else if (splitMode === "range") {
-                    link.download = `pages_${rangeStartValue}-${rangeEndValue}.pdf`;
+                    link.download = `${safeBaseName}_pages_${rangeStartValue}-${rangeEndValue}.pdf`;
                 } else {
-                    link.download = `split_${i + 1}.pdf`;
+                    link.download = `${safeBaseName}_part_${i + 1}.pdf`;
                 }
                 link.click();
                 URL.revokeObjectURL(url);
@@ -191,7 +196,7 @@ export default function SplitPDFTool() {
                             <li>2. Choose split mode (Pages, Range, or Interval)</li>
                             <li>3. Configure your selection</li>
                             <li>4. Click "Split PDF" to extract</li>
-                            <li>5. Files will download automatically</li>
+                            <li>5. Files will download using your chosen name</li>
                         </ol>
                     </div>
                 )}
@@ -219,12 +224,33 @@ export default function SplitPDFTool() {
                                         setRangeStart("1");
                                         setRangeEnd("1");
                                         setEveryN("1");
+                                        setOutputBaseName("");
                                     }}
                                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                                 >
                                     Remove
                                 </button>
                             </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">Output File Name</h2>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Base name for split files
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={outputBaseName}
+                                    onChange={(event) => setOutputBaseName(event.target.value)}
+                                    className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none bg-white text-gray-900"
+                                    placeholder="e.g., contract"
+                                />
+                                <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">.pdf</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Files will be named like {outputBaseName || "split"}_page_1.pdf
+                            </p>
                         </div>
 
                         {/* Split Mode Selector */}

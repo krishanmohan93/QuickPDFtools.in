@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import DragDropUpload from "./DragDropUpload";
 import { RotateCcw, RotateCw } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 type Status = "idle" | "uploading" | "rotating" | "success" | "error";
 
@@ -37,6 +38,8 @@ export default function RotatePDFTool() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [downloadName, setDownloadName] = useState<string>("rotated.pdf");
+    const [downloadBaseName, setDownloadBaseName] = useState<string>("rotated");
+    const [downloadExtension, setDownloadExtension] = useState<string>(".pdf");
     const xhrRef = useRef<XMLHttpRequest | null>(null);
 
     const isBusy = status === "uploading" || status === "rotating";
@@ -70,6 +73,8 @@ export default function RotatePDFTool() {
         setErrorMessage(null);
         setDownloadUrl(null);
         setDownloadName("rotated.pdf");
+        setDownloadBaseName("rotated");
+        setDownloadExtension(".pdf");
     };
 
     const validateFile = (selectedFile: File) => {
@@ -93,6 +98,9 @@ export default function RotatePDFTool() {
             return;
         }
 
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFile(selectedFile);
         setErrorMessage(null);
         setStatus("idle");
@@ -233,6 +241,9 @@ export default function RotatePDFTool() {
 
                 setDownloadUrl(url);
                 setDownloadName(fileName);
+                const parts = splitFileName(fileName);
+                setDownloadBaseName(parts.base || "rotated");
+                setDownloadExtension(parts.ext || ".pdf");
                 setProgress(100);
                 setStatus("success");
             } else {
@@ -560,10 +571,27 @@ export default function RotatePDFTool() {
                                 </div>
                                 <h3 className="text-2xl font-bold text-green-900 mb-2">Success!</h3>
                                 <p className="text-green-700 mb-6">Your rotated PDF is ready to download.</p>
+                                <div className="max-w-md mx-auto mb-6 text-left">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={downloadBaseName}
+                                            onChange={(event) => setDownloadBaseName(event.target.value)}
+                                            className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-700"
+                                            placeholder="Enter file name"
+                                        />
+                                        {downloadExtension && (
+                                            <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                                {downloadExtension}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                     <a
                                         href={downloadUrl}
-                                        download={downloadName}
+                                        download={buildDownloadName(downloadBaseName, downloadExtension, downloadName)}
                                         className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 !text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
                                     >
                                         Download PDF

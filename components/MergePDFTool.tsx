@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import { PDFDocument } from "pdf-lib";
 import DragDropUpload from "./DragDropUpload";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 export default function MergePDFTool() {
     const [files, setFiles] = useState<File[]>([]);
@@ -10,13 +11,39 @@ export default function MergePDFTool() {
     const [progress, setProgress] = useState(0);
     const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [downloadName, setDownloadName] = useState("");
+    const [downloadBaseName, setDownloadBaseName] = useState("");
+    const [downloadExtension, setDownloadExtension] = useState("");
+
+    useEffect(() => {
+        return () => {
+            if (downloadUrl) {
+                URL.revokeObjectURL(downloadUrl);
+            }
+        };
+    }, [downloadUrl]);
 
     const handleFileSelect = (selectedFiles: File[]) => {
         setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
+        setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     const removeFile = (index: number) => {
         setFiles(files.filter((_, i) => i !== index));
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+            setDownloadUrl(null);
+            setDownloadName("");
+            setDownloadBaseName("");
+            setDownloadExtension("");
+        }
     };
 
     const moveFile = (fromIndex: number, toIndex: number) => {
@@ -25,6 +52,13 @@ export default function MergePDFTool() {
         const [moved] = nextFiles.splice(fromIndex, 1);
         nextFiles.splice(toIndex, 0, moved);
         setFiles(nextFiles);
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+            setDownloadUrl(null);
+            setDownloadName("");
+            setDownloadBaseName("");
+            setDownloadExtension("");
+        }
     };
 
     const handleDragStart = (index: number) => {
@@ -90,23 +124,42 @@ export default function MergePDFTool() {
             });
             const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
             const url = URL.createObjectURL(blob);
-
-            // Download
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `merged_${Date.now()}.pdf`;
-            link.click();
-
-            // Cleanup
-            URL.revokeObjectURL(url);
-            setFiles([]);
-            setProgress(0);
+            const defaultName = `merged_${Date.now()}.pdf`;
+            const parts = splitFileName(defaultName);
+            setDownloadUrl(url);
+            setDownloadName(defaultName);
+            setDownloadBaseName(parts.base || "merged");
+            setDownloadExtension(parts.ext || ".pdf");
+            setProgress(100);
         } catch (error) {
             console.error("Error merging PDFs:", error);
             alert("Failed to merge PDFs. Please try again.");
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleDownload = () => {
+        if (!downloadUrl) return;
+        const finalName = buildDownloadName(downloadBaseName, downloadExtension, downloadName || "merged.pdf");
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = finalName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleReset = () => {
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
+        setFiles([]);
+        setProgress(0);
+        setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     return (
@@ -147,7 +200,7 @@ export default function MergePDFTool() {
                         <li>1. Click to select or drag PDF files</li>
                         <li>2. Drag files to reorder</li>
                         <li>3. Click "Merge PDFs" to combine them</li>
-                        <li>4. Your merged PDF will download automatically</li>
+                        <li>4. Choose a filename and download the merged PDF</li>
                     </ol>
                 </div>
 
@@ -217,8 +270,51 @@ export default function MergePDFTool() {
                     </div>
                 )}
 
+                {downloadUrl && !isProcessing && (
+                    <div className="text-center py-8 bg-green-50 rounded-2xl border-2 border-green-200 mb-8" role="status">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <h3 className="text-2xl font-bold text-green-900 mb-2">Merge Complete!</h3>
+                        <p className="text-green-700 mb-6">Your merged PDF is ready to download.</p>
+                        <div className="max-w-md mx-auto mb-6 text-left">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={downloadBaseName}
+                                    onChange={(event) => setDownloadBaseName(event.target.value)}
+                                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-gray-700"
+                                    placeholder="Enter file name"
+                                />
+                                {downloadExtension && (
+                                    <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                        {downloadExtension}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button
+                                onClick={handleDownload}
+                                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+                            >
+                                Download PDF
+                            </button>
+                            <button
+                                onClick={handleReset}
+                                className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+                            >
+                                Merge Another File
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Merge Button */}
-                {files.length >= 2 && !isProcessing && (
+                {files.length >= 2 && !isProcessing && !downloadUrl && (
                     <button
                         onClick={mergePDFs}
                         className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xl font-bold py-6 rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"

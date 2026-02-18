@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 import { marked } from "marked";
 import Prism from "prismjs";
 import "prismjs/components/prism-python";
@@ -287,6 +288,8 @@ export default function PythonJupyterToPDFTool() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [downloadBaseName, setDownloadBaseName] = useState<string>("");
+    const [downloadExtension, setDownloadExtension] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -312,6 +315,8 @@ export default function PythonJupyterToPDFTool() {
         setFile(selectedFile);
         setError(null);
         setDownloadUrl(null);
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -463,6 +468,10 @@ export default function PythonJupyterToPDFTool() {
             }
             const url = URL.createObjectURL(pdfBlob);
             setDownloadUrl(url);
+            const defaultName = file ? file.name.replace(/\.(py|ipynb)$/, '.pdf') : 'converted.pdf';
+            const parts = splitFileName(defaultName);
+            setDownloadBaseName(parts.base || 'converted');
+            setDownloadExtension(parts.ext || '.pdf');
             setProgress(100);
         } catch (err) {
             console.error("Conversion error:", err);
@@ -476,7 +485,11 @@ export default function PythonJupyterToPDFTool() {
         if (!downloadUrl) return;
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = file ? file.name.replace(/\.(py|ipynb)$/, '.pdf') : 'converted.pdf';
+        a.download = buildDownloadName(
+            downloadBaseName,
+            downloadExtension,
+            file ? file.name.replace(/\.(py|ipynb)$/, '.pdf') : 'converted.pdf'
+        );
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -488,6 +501,8 @@ export default function PythonJupyterToPDFTool() {
             URL.revokeObjectURL(downloadUrl);
         }
         setDownloadUrl(null);
+        setDownloadBaseName("");
+        setDownloadExtension("");
         setProgress(0);
         setError(null);
         setIsProcessing(false);
@@ -619,6 +634,23 @@ export default function PythonJupyterToPDFTool() {
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">Conversion Complete!</h3>
                         <p className="text-gray-600 mb-6">Your PDF is ready to download</p>
+                        <div className="max-w-md mx-auto mb-6 text-left">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={downloadBaseName}
+                                    onChange={(event) => setDownloadBaseName(event.target.value)}
+                                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none text-gray-700"
+                                    placeholder="Enter file name"
+                                />
+                                {downloadExtension && (
+                                    <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                        {downloadExtension}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button
                                 onClick={handleDownload}

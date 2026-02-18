@@ -4,6 +4,7 @@ import { useState, type DragEvent } from "react";
 import FileUpload from "@/components/FileUpload";
 import ProgressBar from "@/components/ProgressBar";
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from "@/lib/constants";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 interface ToolPageProps {
     toolId: string;
@@ -30,14 +31,23 @@ export default function ToolPage({
     const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
     const [message, setMessage] = useState("");
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [downloadName, setDownloadName] = useState<string>("");
+    const [downloadBaseName, setDownloadBaseName] = useState<string>("");
+    const [downloadExtension, setDownloadExtension] = useState<string>("");
     const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const allowMultiple = toolId === "merge-pdf" || toolId === "jpg-to-pdf" || toolId === "png-to-pdf";
 
     const handleFilesSelected = (selectedFiles: File[]) => {
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFiles((prevFiles) => (allowMultiple ? [...prevFiles, ...selectedFiles] : selectedFiles));
         setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
         setMessage("");
     };
 
@@ -49,10 +59,24 @@ export default function ToolPage({
             nextFiles.splice(toIndex, 0, moved);
             return nextFiles;
         });
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+            setDownloadUrl(null);
+            setDownloadName("");
+            setDownloadBaseName("");
+            setDownloadExtension("");
+        }
     };
 
     const removeFile = (index: number) => {
         setFiles((prevFiles) => prevFiles.filter((_, fileIndex) => fileIndex !== index));
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+            setDownloadUrl(null);
+            setDownloadName("");
+            setDownloadBaseName("");
+            setDownloadExtension("");
+        }
     };
 
     const handleDragStart = (index: number) => {
@@ -99,6 +123,14 @@ export default function ToolPage({
             return filename;
         };
 
+        const updateDownloadState = (filename: string) => {
+            const parts = splitFileName(filename);
+            const fallbackExtension = splitFileName(outputFileName).ext;
+            setDownloadName(filename);
+            setDownloadBaseName(parts.base || "converted");
+            setDownloadExtension(parts.ext || fallbackExtension || "");
+        };
+
         if (toolId === "merge-pdf") {
             if (files.length < 2) {
                 setStatus("error");
@@ -139,7 +171,7 @@ export default function ToolPage({
                 setStatus("success");
                 setMessage("Processing complete! Your file is ready to download.");
                 setDownloadUrl(url);
-                (window as any).__downloadFilename = filename;
+                updateDownloadState(filename);
             } catch (error) {
                 setStatus("error");
                 const errorMessage = error instanceof Error ? error.message : "Failed to merge PDF files. Please try again.";
@@ -218,9 +250,7 @@ export default function ToolPage({
             setStatus("success");
             setMessage("Processing complete! Your file is ready to download.");
             setDownloadUrl(url);
-
-            // Store filename in state for download
-            (window as any).__downloadFilename = filename;
+            updateDownloadState(filename);
         } catch (error) {
             setStatus("error");
             const errorMessage = error instanceof Error ? error.message : "An error occurred while processing your file. Please try again.";
@@ -235,24 +265,26 @@ export default function ToolPage({
         if (downloadUrl) {
             const link = document.createElement("a");
             link.href = downloadUrl;
-            // Use stored filename or default
-            link.download = (window as any).__downloadFilename || outputFileName;
+            link.download = buildDownloadName(downloadBaseName, downloadExtension, downloadName || outputFileName);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-
-            // Clean up
-            delete (window as any).__downloadFilename;
         }
     };
 
     const handleReset = () => {
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFiles([]);
         setProcessing(false);
         setProgress(0);
         setStatus("processing");
         setMessage("");
         setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     return (
@@ -344,6 +376,24 @@ export default function ToolPage({
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
                         <p className="text-gray-600 mb-6">{message}</p>
+                        <div className="max-w-md mx-auto mb-6 text-left">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={downloadBaseName}
+                                    onChange={(event) => setDownloadBaseName(event.target.value)}
+                                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-700"
+                                    placeholder="Enter file name"
+                                />
+                                {downloadExtension && (
+                                    <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                        {downloadExtension}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">Customize the output file name before downloading.</p>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button
                                 onClick={handleDownload}

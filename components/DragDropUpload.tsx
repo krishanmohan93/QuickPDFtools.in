@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, DragEvent } from "react";
+import CloudImport from "@/components/CloudImport";
 
 interface DragDropUploadProps {
     onFileSelect: (files: File[]) => void;
@@ -106,49 +107,58 @@ export default function DragDropUpload({
     };
 
     return (
-        <div
-            className={`border-4 border-dashed rounded-xl p-12 text-center transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-            style={{
-                borderColor: isDragging ? styleVars.accent : styleVars.uploadBorder,
-                backgroundColor: isDragging ? styleVars.uploadHoverBg : styleVars.uploadBg,
-            }}
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={handleClick}
-            onMouseEnter={(e) => {
-                if (!disabled && !isDragging) {
-                    e.currentTarget.style.borderColor = styleVars.accent;
-                    e.currentTarget.style.backgroundColor = styleVars.uploadHoverBg;
-                }
-            }}
-            onMouseLeave={(e) => {
-                if (!disabled && !isDragging) {
-                    e.currentTarget.style.borderColor = styleVars.uploadBorder;
-                    e.currentTarget.style.backgroundColor = styleVars.uploadBg;
-                }
-            }}
-        >
-            <input
-                ref={fileInputRef}
-                type="file"
+        <div>
+            <div
+                className={`border-4 border-dashed rounded-xl p-12 text-center transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                style={{
+                    borderColor: isDragging ? styleVars.accent : styleVars.uploadBorder,
+                    backgroundColor: isDragging ? styleVars.uploadHoverBg : styleVars.uploadBg,
+                }}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={handleClick}
+                onMouseEnter={(e) => {
+                    if (!disabled && !isDragging) {
+                        e.currentTarget.style.borderColor = styleVars.accent;
+                        e.currentTarget.style.backgroundColor = styleVars.uploadHoverBg;
+                    }
+                }}
+                onMouseLeave={(e) => {
+                    if (!disabled && !isDragging) {
+                        e.currentTarget.style.borderColor = styleVars.uploadBorder;
+                        e.currentTarget.style.backgroundColor = styleVars.uploadBg;
+                    }
+                }}
+            >
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={accept}
+                    multiple={multiple}
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    disabled={disabled}
+                />
+                <div className="text-6xl mb-4">{icon}</div>
+                <div className="text-xl font-semibold mb-2" style={{ color: styleVars.textPrimary }}>
+                    {title}
+                </div>
+                <div className="text-base" style={{ color: styleVars.textSecondary }}>
+                    {subtitle}
+                </div>
+                <div className="text-sm mt-2" style={{ color: styleVars.textMuted }}>
+                    Maximum file size: {maxSize}MB
+                </div>
+            </div>
+            <CloudImport
+                onFilesSelected={onFileSelect}
                 accept={accept}
+                maxSizeBytes={maxSize * 1024 * 1024}
                 multiple={multiple}
-                onChange={handleFileInputChange}
-                className="hidden"
                 disabled={disabled}
             />
-            <div className="text-6xl mb-4">{icon}</div>
-            <div className="text-xl font-semibold mb-2" style={{ color: styleVars.textPrimary }}>
-                {title}
-            </div>
-            <div className="text-base" style={{ color: styleVars.textSecondary }}>
-                {subtitle}
-            </div>
-            <div className="text-sm mt-2" style={{ color: styleVars.textMuted }}>
-                Maximum file size: {maxSize}MB
-            </div>
         </div>
     );
 }

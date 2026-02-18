@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DragDropUpload from "./DragDropUpload";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 type CompressionLevel = "low" | "medium" | "high";
 
@@ -13,15 +14,34 @@ export default function CompressPDFTool() {
     const [originalSize, setOriginalSize] = useState(0);
     const [compressedSize, setCompressedSize] = useState(0);
     const [compressionRatio, setCompressionRatio] = useState(0);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [downloadName, setDownloadName] = useState("");
+    const [downloadBaseName, setDownloadBaseName] = useState("");
+    const [downloadExtension, setDownloadExtension] = useState("");
+
+    useEffect(() => {
+        return () => {
+            if (downloadUrl) {
+                URL.revokeObjectURL(downloadUrl);
+            }
+        };
+    }, [downloadUrl]);
 
     const handleFileSelect = (selectedFiles: File[]) => {
         const selectedFile = selectedFiles[0];
         if (!selectedFile) return;
 
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFile(selectedFile);
         setOriginalSize(selectedFile.size);
         setCompressedSize(0);
         setCompressionRatio(0);
+        setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     const compressPDF = async () => {
@@ -62,13 +82,13 @@ export default function CompressPDFTool() {
 
             setProgress(80);
 
-            // Download the compressed PDF
             const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `compressed_${file.name}`;
-            link.click();
-            URL.revokeObjectURL(url);
+            const defaultName = `compressed_${file.name}`;
+            const parts = splitFileName(defaultName);
+            setDownloadUrl(url);
+            setDownloadName(defaultName);
+            setDownloadBaseName(parts.base || "compressed");
+            setDownloadExtension(parts.ext || ".pdf");
 
             setProgress(100);
 
@@ -84,6 +104,17 @@ export default function CompressPDFTool() {
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleDownload = () => {
+        if (!downloadUrl) return;
+        const finalName = buildDownloadName(downloadBaseName, downloadExtension, downloadName || "compressed.pdf");
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = finalName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const formatFileSize = (bytes: number) => {
@@ -134,7 +165,7 @@ export default function CompressPDFTool() {
                             <li>2. Choose compression level (Low, Medium, or High)</li>
                             <li>3. Click "Compress PDF"</li>
                             <li>4. Wait for processing to complete</li>
-                            <li>5. Compressed file downloads automatically</li>
+                            <li>5. Choose a filename and download your PDF</li>
                         </ol>
                     </div>
                 )}
@@ -156,10 +187,17 @@ export default function CompressPDFTool() {
                                 </div>
                                 <button
                                     onClick={() => {
+                                        if (downloadUrl) {
+                                            URL.revokeObjectURL(downloadUrl);
+                                        }
                                         setFile(null);
                                         setOriginalSize(0);
                                         setCompressedSize(0);
                                         setCompressionRatio(0);
+                                        setDownloadUrl(null);
+                                        setDownloadName("");
+                                        setDownloadBaseName("");
+                                        setDownloadExtension("");
                                     }}
                                     disabled={isProcessing}
                                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
@@ -252,6 +290,37 @@ export default function CompressPDFTool() {
                             </div>
                         )}
 
+                        {downloadUrl && !isProcessing && (
+                            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-green-100">
+                                <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
+                                    Ready to Download
+                                </h3>
+                                <div className="max-w-md mx-auto">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={downloadBaseName}
+                                            onChange={(event) => setDownloadBaseName(event.target.value)}
+                                            className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-orange-500 focus:outline-none text-gray-700"
+                                            placeholder="Enter file name"
+                                        />
+                                        {downloadExtension && (
+                                            <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                                {downloadExtension}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={handleDownload}
+                                        className="mt-4 w-full bg-gradient-to-r from-orange-600 to-red-600 text-white text-lg font-bold py-4 rounded-xl hover:from-orange-700 hover:to-red-700 transition-all shadow-lg"
+                                    >
+                                        Download Compressed PDF
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Progress */}
                         {isProcessing && (
                             <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
@@ -273,7 +342,7 @@ export default function CompressPDFTool() {
                         )}
 
                         {/* Compress Button */}
-                        {!isProcessing && (
+                        {!isProcessing && !downloadUrl && (
                             <button
                                 onClick={compressPDF}
                                 className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white text-xl font-bold py-6 rounded-2xl hover:from-orange-700 hover:to-red-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"

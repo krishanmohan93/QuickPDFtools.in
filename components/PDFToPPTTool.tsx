@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import DragDropUpload from "@/components/DragDropUpload";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 type Status = "idle" | "uploading" | "converting" | "success" | "error";
 
@@ -21,6 +22,8 @@ export default function PDFToPPTTool() {
     const [error, setError] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [downloadName, setDownloadName] = useState<string>("converted.pptx");
+    const [downloadBaseName, setDownloadBaseName] = useState<string>("converted");
+    const [downloadExtension, setDownloadExtension] = useState<string>(".pptx");
     const xhrRef = useRef<XMLHttpRequest | null>(null);
 
     const isBusy = status === "uploading" || status === "converting";
@@ -44,6 +47,8 @@ export default function PDFToPPTTool() {
         setError(null);
         setDownloadUrl(null);
         setDownloadName("converted.pptx");
+        setDownloadBaseName("converted");
+        setDownloadExtension(".pptx");
     };
 
     const validateFile = (selectedFile: File) => {
@@ -67,10 +72,17 @@ export default function PDFToPPTTool() {
             return;
         }
 
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFile(selectedFile);
         setError(null);
         setStatus("idle");
         setProgress(0);
+        setDownloadUrl(null);
+        setDownloadName("converted.pptx");
+        setDownloadBaseName("converted");
+        setDownloadExtension(".pptx");
     };
 
     const handleConvert = () => {
@@ -116,6 +128,9 @@ export default function PDFToPPTTool() {
 
                 setDownloadUrl(url);
                 setDownloadName(fileName);
+                const parts = splitFileName(fileName);
+                setDownloadBaseName(parts.base || "converted");
+                setDownloadExtension(parts.ext || ".pptx");
                 setProgress(100);
                 setStatus("success");
             } else {
@@ -277,10 +292,27 @@ export default function PDFToPPTTool() {
                         </div>
                         <h3 className="text-2xl font-bold text-green-900 dark:text-emerald-100 mb-2">Conversion Complete!</h3>
                         <p className="text-green-700 dark:text-emerald-200 mb-6">Your PPTX is ready to download.</p>
+                        <div className="max-w-md mx-auto mb-6 text-left">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-slate-200 mb-2">File name</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={downloadBaseName}
+                                    onChange={(event) => setDownloadBaseName(event.target.value)}
+                                    className="flex-1 px-4 py-3 border border-gray-200 dark:border-slate-700 rounded-lg focus:border-blue-500 focus:outline-none bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200"
+                                    placeholder="Enter file name"
+                                />
+                                {downloadExtension && (
+                                    <span className="px-3 py-2 bg-gray-100 dark:bg-slate-800 rounded-lg text-sm text-gray-600 dark:text-slate-300">
+                                        {downloadExtension}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <a
                                 href={downloadUrl}
-                                download={downloadName}
+                                download={buildDownloadName(downloadBaseName, downloadExtension, downloadName)}
                                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 !text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
                             >
                                 Download PPTX

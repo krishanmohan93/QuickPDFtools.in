@@ -2,11 +2,15 @@
 
 import { useState } from "react";
 import DragDropUpload from "./DragDropUpload";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 export default function ExcelToPDFTool() {
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [downloadName, setDownloadName] = useState<string>("");
+    const [downloadBaseName, setDownloadBaseName] = useState<string>("");
+    const [downloadExtension, setDownloadExtension] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState(0);
 
@@ -27,9 +31,15 @@ export default function ExcelToPDFTool() {
             return;
         }
 
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFile(selectedFile);
         setError(null);
         setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     const handleFileSelect = (selectedFiles: File[]) => {
@@ -73,13 +83,13 @@ export default function ExcelToPDFTool() {
 
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
+            const defaultName = file.name.replace(/\.[^/.]+$/, '') + '.pdf';
+            const parts = splitFileName(defaultName);
             setDownloadUrl(url);
+            setDownloadName(defaultName);
+            setDownloadBaseName(parts.base || "converted");
+            setDownloadExtension(parts.ext || ".pdf");
             setProgress(100);
-
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = file.name.replace(/\.[^/.]+$/, '') + '.pdf';
-            link.click();
 
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to convert file');
@@ -92,10 +102,24 @@ export default function ExcelToPDFTool() {
         }
     };
 
+    const handleDownload = () => {
+        if (!downloadUrl) return;
+        const finalName = buildDownloadName(downloadBaseName, downloadExtension, downloadName || "converted.pdf");
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = finalName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const resetTool = () => {
         setFile(null);
         setDownloadUrl(null);
         setError(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
         if (downloadUrl) {
             URL.revokeObjectURL(downloadUrl);
         }
@@ -222,14 +246,30 @@ export default function ExcelToPDFTool() {
                         </div>
                         <h3 className="text-2xl font-bold text-green-900 mb-2">Conversion Complete!</h3>
                         <p className="text-green-700 mb-6">Your PDF is ready to download.</p>
+                        <div className="max-w-md mx-auto mb-6 text-left">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={downloadBaseName}
+                                    onChange={(event) => setDownloadBaseName(event.target.value)}
+                                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-700"
+                                    placeholder="Enter file name"
+                                />
+                                {downloadExtension && (
+                                    <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                        {downloadExtension}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <a
-                                href={downloadUrl}
-                                download={file?.name.replace(/\.[^/.]+$/, '') + '.pdf'}
-                                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 !text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
+                            <button
+                                onClick={handleDownload}
+                                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl"
                             >
                                 Download PDF
-                            </a>
+                            </button>
                             <button
                                 onClick={resetTool}
                                 className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"

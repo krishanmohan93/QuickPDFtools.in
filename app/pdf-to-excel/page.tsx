@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DragDropUpload from '@/components/DragDropUpload';
 import { SITE_URL } from '@/lib/constants';
+import { buildDownloadName, splitFileName } from '@/lib/fileName';
 
 interface ConversionResult {
   success: boolean;
@@ -38,6 +39,10 @@ export default function PDFToExcelPage() {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ConversionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [downloadName, setDownloadName] = useState<string>('');
+  const [downloadBaseName, setDownloadBaseName] = useState<string>('');
+  const [downloadExtension, setDownloadExtension] = useState<string>('');
 
   const MAX_FILE_SIZE_MB = 20;
   const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -56,6 +61,9 @@ export default function PDFToExcelPage() {
     const selectedFile = selectedFiles[0];
     if (!selectedFile) return;
 
+    if (downloadUrl) {
+      window.URL.revokeObjectURL(downloadUrl);
+    }
     const validationError = validateFile(selectedFile);
     if (validationError) {
       setError(validationError);
@@ -67,13 +75,24 @@ export default function PDFToExcelPage() {
     setError(null);
     setFile(selectedFile);
     setResult(null);
+    setDownloadUrl(null);
+    setDownloadName('');
+    setDownloadBaseName('');
+    setDownloadExtension('');
   };
 
   const resetState = () => {
+    if (downloadUrl) {
+      window.URL.revokeObjectURL(downloadUrl);
+    }
     setFile(null);
     setError(null);
     setResult(null);
     setProgress(0);
+    setDownloadUrl(null);
+    setDownloadName('');
+    setDownloadBaseName('');
+    setDownloadExtension('');
   };
 
   const handleConvert = async () => {
@@ -114,13 +133,12 @@ export default function PDFToExcelPage() {
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `QuickPDFTools-${Date.now()}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const defaultName = `QuickPDFTools-${Date.now()}.xlsx`;
+      const parts = splitFileName(defaultName);
+      setDownloadUrl(url);
+      setDownloadName(defaultName);
+      setDownloadBaseName(parts.base || 'QuickPDFTools');
+      setDownloadExtension(parts.ext || '.xlsx');
 
       // Get conversion details from response headers
       const tablesFound = response.headers.get('x-tables-found');
@@ -129,22 +147,28 @@ export default function PDFToExcelPage() {
 
       setResult({
         success: true,
-        fileName: link.download,
+        fileName: defaultName,
         tablesFound: tablesFound ? parseInt(tablesFound) : undefined,
         rowsExtracted: rowsExtracted ? parseInt(rowsExtracted) : undefined,
         processingTime: processingTime ? parseFloat(processingTime) : undefined,
       });
-
-      setTimeout(() => {
-        setFile(null);
-        setProgress(0);
-      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred during conversion');
       setProgress(0);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!downloadUrl) return;
+    const finalName = buildDownloadName(downloadBaseName, downloadExtension, downloadName || 'converted.xlsx');
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = finalName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -240,6 +264,45 @@ export default function PDFToExcelPage() {
           </div>
         )}
 
+        {downloadUrl && !isLoading && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-green-100">
+            <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
+              Ready to Download
+            </h3>
+            <div className="max-w-md mx-auto mb-6 text-left">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={downloadBaseName}
+                  onChange={(event) => setDownloadBaseName(event.target.value)}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none text-gray-700"
+                  placeholder="Enter file name"
+                />
+                {downloadExtension && (
+                  <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                    {downloadExtension}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={handleDownload}
+                className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+              >
+                Download Excel
+              </button>
+              <button
+                onClick={resetState}
+                className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+              >
+                Convert Another File
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Progress */}
         {isLoading && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
@@ -261,7 +324,7 @@ export default function PDFToExcelPage() {
         )}
 
         {/* Convert Button */}
-        {file && !isLoading && (
+        {file && !isLoading && !downloadUrl && (
           <button
             onClick={handleConvert}
             className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-xl font-bold py-6 rounded-2xl hover:from-indigo-700 hover:to-blue-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"

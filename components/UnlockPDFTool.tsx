@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import DragDropUpload from "./DragDropUpload";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 import { Eye, EyeOff } from "lucide-react";
 
 type Status = "idle" | "uploading" | "unlocking" | "success" | "error";
@@ -23,6 +24,8 @@ export default function UnlockPDFTool() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
     const [downloadName, setDownloadName] = useState<string>("unlocked.pdf");
+    const [downloadBaseName, setDownloadBaseName] = useState<string>("unlocked");
+    const [downloadExtension, setDownloadExtension] = useState<string>(".pdf");
     const xhrRef = useRef<XMLHttpRequest | null>(null);
 
     const isBusy = status === "uploading" || status === "unlocking";
@@ -47,6 +50,8 @@ export default function UnlockPDFTool() {
         setErrorMessage(null);
         setDownloadUrl(null);
         setDownloadName("unlocked.pdf");
+        setDownloadBaseName("unlocked");
+        setDownloadExtension(".pdf");
     };
 
     const validateFile = (selectedFile: File) => {
@@ -70,10 +75,17 @@ export default function UnlockPDFTool() {
             return;
         }
 
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFile(selectedFile);
         setErrorMessage(null);
         setStatus("idle");
         setProgress(0);
+        setDownloadUrl(null);
+        setDownloadName("unlocked.pdf");
+        setDownloadBaseName("unlocked");
+        setDownloadExtension(".pdf");
     };
 
     const handleUnlock = () => {
@@ -123,6 +135,9 @@ export default function UnlockPDFTool() {
 
                 setDownloadUrl(url);
                 setDownloadName(fileName);
+                const parts = splitFileName(fileName);
+                setDownloadBaseName(parts.base || "unlocked");
+                setDownloadExtension(parts.ext || ".pdf");
                 setProgress(100);
                 setStatus("success");
             } else {
@@ -311,10 +326,27 @@ export default function UnlockPDFTool() {
                                 </div>
                                 <h3 className="text-2xl font-bold text-emerald-900 mb-2">Unlocked Successfully!</h3>
                                 <p className="text-emerald-700 mb-6">Your unlocked PDF is ready to download.</p>
+                                <div className="max-w-md mx-auto mb-6 text-left">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={downloadBaseName}
+                                            onChange={(event) => setDownloadBaseName(event.target.value)}
+                                            className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-emerald-500 focus:outline-none text-gray-700"
+                                            placeholder="Enter file name"
+                                        />
+                                        {downloadExtension && (
+                                            <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                                {downloadExtension}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                     <a
                                         href={downloadUrl}
-                                        download={downloadName}
+                                        download={buildDownloadName(downloadBaseName, downloadExtension, downloadName)}
                                         className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-sky-600 !text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-sky-700 transition-all shadow-lg hover:shadow-xl ring-1 ring-indigo-500/20"
                                     >
                                         Download PDF

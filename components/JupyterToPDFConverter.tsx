@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { Upload, FileCode, Download, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 export default function JupyterToPDFConverter() {
     const [file, setFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
     const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [downloadBaseName, setDownloadBaseName] = useState<string>("");
+    const [downloadExtension, setDownloadExtension] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -35,9 +38,14 @@ export default function JupyterToPDFConverter() {
             return;
         }
 
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFile(selectedFile);
         setError(null);
         setDownloadUrl(null);
+        setDownloadBaseName("");
+        setDownloadExtension("");
         setProgress(0);
     };
 
@@ -88,7 +96,7 @@ export default function JupyterToPDFConverter() {
                 throw new Error(errorData.error || 'Conversion failed');
             }
 
-            const { html, fileName } = await response.json();
+            const { html } = await response.json();
             setProgress(70);
 
             // Convert HTML to PDF using browser's print functionality
@@ -98,6 +106,10 @@ export default function JupyterToPDFConverter() {
             // Create download URL
             const url = URL.createObjectURL(pdfBlob);
             setDownloadUrl(url);
+            const defaultName = file?.name.replace(/\.(ipynb|py)$/, '.pdf') || 'document.pdf';
+            const parts = splitFileName(defaultName);
+            setDownloadBaseName(parts.base || 'document');
+            setDownloadExtension(parts.ext || '.pdf');
             setProgress(100);
 
         } catch (err) {
@@ -197,7 +209,7 @@ export default function JupyterToPDFConverter() {
 
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = file.name.replace(/\.(py|ipynb)$/, '.pdf');
+        a.download = buildDownloadName(downloadBaseName, downloadExtension, file.name.replace(/\.(py|ipynb)$/, '.pdf'));
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -206,6 +218,8 @@ export default function JupyterToPDFConverter() {
     const handleReset = () => {
         setFile(null);
         setDownloadUrl(null);
+        setDownloadBaseName("");
+        setDownloadExtension("");
         setProgress(0);
         setError(null);
         setIsProcessing(false);
@@ -328,6 +342,23 @@ export default function JupyterToPDFConverter() {
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-2">Conversion Complete!</h3>
                         <p className="text-gray-600 mb-6">Your professional PDF is ready to download</p>
+                        <div className="max-w-md mx-auto mb-6 text-left">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={downloadBaseName}
+                                    onChange={(event) => setDownloadBaseName(event.target.value)}
+                                    className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none text-gray-700"
+                                    placeholder="Enter file name"
+                                />
+                                {downloadExtension && (
+                                    <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                        {downloadExtension}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <button
                                 onClick={handleDownload}

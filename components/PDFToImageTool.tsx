@@ -3,6 +3,7 @@
 import { useState } from "react";
 import DragDropUpload from "./DragDropUpload";
 import * as pdfjsLib from 'pdfjs-dist';
+import { sanitizeFileNamePart, splitFileName } from "@/lib/fileName";
 
 // Set worker path
 if (typeof window !== 'undefined') {
@@ -22,6 +23,7 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
     const [totalPages, setTotalPages] = useState(0);
     const [quality, setQuality] = useState(0.95);
     const [scale, setScale] = useState(2); // DPI multiplier
+    const [outputBaseName, setOutputBaseName] = useState("");
 
     const formatName = format.toUpperCase();
     const formatMime = format === "jpg" ? "image/jpeg" : "image/png";
@@ -61,6 +63,8 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
         if (!selectedFile) return;
 
         setFile(selectedFile);
+        const parts = splitFileName(selectedFile.name);
+        setOutputBaseName(parts.base || "page");
 
         // Load PDF to get page count
         try {
@@ -120,7 +124,8 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `page-${pageNum}.${format}`;
+                const safeBase = sanitizeFileNamePart(outputBaseName || "page");
+                link.download = `${safeBase}-page-${pageNum}.${format}`;
                 link.click();
                 URL.revokeObjectURL(url);
 
@@ -205,6 +210,7 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                                     onClick={() => {
                                         setFile(null);
                                         setTotalPages(0);
+                                        setOutputBaseName("");
                                     }}
                                     disabled={isProcessing}
                                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
@@ -219,6 +225,27 @@ export default function PDFToImageTool({ format }: PDFToImageToolProps) {
                             <h2 className="text-2xl font-bold text-gray-800 mb-6">Conversion Options</h2>
 
                             <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Output file name
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={outputBaseName}
+                                            onChange={(e) => setOutputBaseName(e.target.value)}
+                                            disabled={isProcessing}
+                                            className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none bg-white text-gray-900"
+                                            placeholder="e.g., report"
+                                        />
+                                        <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                            .{format}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Pages will download as {outputBaseName || "page"}-page-1.{format}
+                                    </p>
+                                </div>
                                 {/* Quality Slider (for JPG) */}
                                 {format === "jpg" && (
                                     <div>

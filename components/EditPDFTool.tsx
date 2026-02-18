@@ -4,6 +4,8 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { mergeTextItems, TextItem, detectTextWithContentStreams, replaceTextInPDFStreams, extractEmbeddedFonts } from '../lib/pdfEditingInternals';
 import { getPDFWorkerManager } from '../lib/workerManager';
+import CloudImport from '@/components/CloudImport';
+import { buildDownloadName, splitFileName } from '@/lib/fileName';
 
 // Worker manager instance
 let workerManager: ReturnType<typeof getPDFWorkerManager> | null = null;
@@ -54,6 +56,8 @@ export default function EditPDFTool() {
     text: string;
   } | null>(null);
   const [downloadInfo, setDownloadInfo] = useState<{ url: string; name: string } | null>(null);
+  const [downloadBaseName, setDownloadBaseName] = useState("");
+  const [downloadExtension, setDownloadExtension] = useState("");
   const MERGE_TEXT_ITEMS = true;
   const [zoomInput, setZoomInput] = useState(() => `${Math.round(1.5 * 100)}%`);
 
@@ -72,6 +76,8 @@ export default function EditPDFTool() {
       URL.revokeObjectURL(downloadInfo.url);
     }
     setDownloadInfo(null);
+    setDownloadBaseName("");
+    setDownloadExtension("");
   };
 
   const triggerDownload = (url: string, name: string) => {
@@ -82,6 +88,12 @@ export default function EditPDFTool() {
     document.body.appendChild(link);
     link.click();
     link.remove();
+  };
+
+  const handleDownload = () => {
+    if (!downloadInfo) return;
+    const finalName = buildDownloadName(downloadBaseName, downloadExtension, downloadInfo.name);
+    triggerDownload(downloadInfo.url, finalName);
   };
 
   const buildSafeFilename = (originalName: string) => {
@@ -146,8 +158,7 @@ export default function EditPDFTool() {
    * Handle file upload and initial PDF processing with memory management
    * Phase 3: Prevent crashes on large PDFs
    */
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
+  const handleSelectedFile = async (selectedFile: File) => {
     if (!selectedFile || selectedFile.type !== 'application/pdf') {
       pushStatus('error', 'Please select a valid PDF file.');
       return;
@@ -239,6 +250,18 @@ export default function EditPDFTool() {
       setIsProcessing(false);
       setLoadingProgress(0);
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    await handleSelectedFile(selectedFile);
+  };
+
+  const handleCloudImport = (selectedFiles: File[]) => {
+    const selectedFile = selectedFiles[0];
+    if (!selectedFile) return;
+    handleSelectedFile(selectedFile);
   };
 
   /**
@@ -560,11 +583,9 @@ export default function EditPDFTool() {
       const url = URL.createObjectURL(blob);
       const safeName = buildSafeFilename(file.name);
       setDownloadInfo({ url, name: safeName });
-      try {
-        triggerDownload(url, safeName);
-      } catch (downloadError) {
-        console.warn('Download trigger failed, waiting for manual download.', downloadError);
-      }
+      const parts = splitFileName(safeName);
+      setDownloadBaseName(parts.base || "edited");
+      setDownloadExtension(parts.ext || ".pdf");
 
       if (warning) {
         pushStatus('warning', warning);
@@ -782,6 +803,11 @@ export default function EditPDFTool() {
                   </div>
                 </label>
               </div>
+              <CloudImport
+                onFilesSelected={handleCloudImport}
+                accept=".pdf"
+                maxSizeBytes={50 * 1024 * 1024}
+              />
             </div>
           </div>
 
@@ -934,18 +960,33 @@ export default function EditPDFTool() {
           </div>
 
           {downloadInfo && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-emerald-900 text-sm font-medium">Download ready</p>
-                <p className="text-emerald-800 text-xs">If the automatic download was blocked, use the button below.</p>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-emerald-900 text-sm font-medium">Download ready</p>
+                  <p className="text-emerald-800 text-xs">Choose a filename before downloading.</p>
+                </div>
               </div>
-              <a
-                href={downloadInfo.url}
-                download={downloadInfo.name}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-medium"
-              >
-                Download Edited PDF
-              </a>
+              <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={downloadBaseName}
+                  onChange={(event) => setDownloadBaseName(event.target.value)}
+                  className="flex-1 px-4 py-3 border border-emerald-200 rounded-lg focus:border-emerald-500 focus:outline-none bg-white text-gray-900"
+                  placeholder="Enter file name"
+                />
+                {downloadExtension && (
+                  <span className="px-4 py-3 bg-white border border-emerald-200 rounded-lg text-sm text-emerald-800">
+                    {downloadExtension}
+                  </span>
+                )}
+                <button
+                  onClick={handleDownload}
+                  className="px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all font-medium"
+                >
+                  Download Edited PDF
+                </button>
+              </div>
             </div>
           )}
 

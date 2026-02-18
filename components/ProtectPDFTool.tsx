@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import DragDropUpload from "./DragDropUpload";
+import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 export default function ProtectPDFTool() {
     const [file, setFile] = useState<File | null>(null);
@@ -20,11 +21,22 @@ export default function ProtectPDFTool() {
     const [progress, setProgress] = useState(0);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [permissionToast, setPermissionToast] = useState<string | null>(null);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+    const [downloadName, setDownloadName] = useState("");
+    const [downloadBaseName, setDownloadBaseName] = useState("");
+    const [downloadExtension, setDownloadExtension] = useState("");
 
     const handleFileSelect = (selectedFiles: File[]) => {
         const selectedFile = selectedFiles[0];
         if (!selectedFile) return;
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
         setFile(selectedFile);
+        setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     const protectPDF = async () => {
@@ -78,14 +90,14 @@ export default function ProtectPDFTool() {
                 return;
             }
 
-            // Download protected PDF
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `protected_${file.name}`;
-            link.click();
-            URL.revokeObjectURL(url);
+            const defaultName = `protected_${file.name}`;
+            const parts = splitFileName(defaultName);
+            setDownloadUrl(url);
+            setDownloadName(defaultName);
+            setDownloadBaseName(parts.base || "protected");
+            setDownloadExtension(parts.ext || ".pdf");
 
             setProgress(100);
 
@@ -98,14 +110,9 @@ export default function ProtectPDFTool() {
                 setTimeout(() => setPermissionToast(null), 6000);
             }
 
-            // Reset form
             setTimeout(() => {
-                setFile(null);
-                setUserPassword("");
-                setOwnerPassword("");
                 setProgress(0);
-                alert("PDF protected successfully!");
-            }, 1000);
+            }, 800);
 
         } catch (error) {
             const message = error instanceof Error ? error.message : "Unknown error";
@@ -114,6 +121,37 @@ export default function ProtectPDFTool() {
         } finally {
             setIsProcessing(false);
         }
+    };
+
+    const handleDownload = () => {
+        if (!downloadUrl) return;
+        const finalName = buildDownloadName(downloadBaseName, downloadExtension, downloadName || "protected.pdf");
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = finalName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const resetTool = () => {
+        if (downloadUrl) {
+            URL.revokeObjectURL(downloadUrl);
+        }
+        setFile(null);
+        setUserPassword("");
+        setOwnerPassword("");
+        setPermissions({
+            print: true,
+            copy: true,
+            modify: false,
+            annotate: false,
+        });
+        setProgress(0);
+        setDownloadUrl(null);
+        setDownloadName("");
+        setDownloadBaseName("");
+        setDownloadExtension("");
     };
 
     return (
@@ -178,7 +216,7 @@ export default function ProtectPDFTool() {
                             <li>2. Set a user password (required to open the PDF)</li>
                             <li>3. Optionally set an owner password for editing permissions</li>
                             <li>4. Choose which permissions to allow</li>
-                            <li>5. Click "Protect PDF" to download the protected file</li>
+                            <li>5. Click "Protect PDF", then choose a filename and download</li>
                         </ol>
                     </div>
                 )}
@@ -199,11 +237,7 @@ export default function ProtectPDFTool() {
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => {
-                                        setFile(null);
-                                        setUserPassword("");
-                                        setOwnerPassword("");
-                                    }}
+                                    onClick={resetTool}
                                     disabled={isProcessing}
                                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
                                 >
@@ -372,8 +406,55 @@ export default function ProtectPDFTool() {
                             </div>
                         )}
 
+                        {downloadUrl && !isProcessing && (
+                            <div className="text-center py-8 bg-green-50 rounded-2xl border-2 border-green-200 mb-8" role="status">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                </div>
+                                <h3 className="text-2xl font-bold text-green-900 mb-2">Protection Complete!</h3>
+                                <p className="text-green-700 mb-6">Your protected PDF is ready to download.</p>
+                                <div className="max-w-md mx-auto mb-6 text-left">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">File name</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={downloadBaseName}
+                                            onChange={(event) => setDownloadBaseName(event.target.value)}
+                                            className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-red-500 focus:outline-none text-gray-700"
+                                            placeholder="Enter file name"
+                                        />
+                                        {downloadExtension && (
+                                            <span className="px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-600">
+                                                {downloadExtension}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                    <button
+                                        onClick={handleDownload}
+                                        className="px-8 py-4 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        Download PDF
+                                    </button>
+                                    <button
+                                        onClick={resetTool}
+                                        className="px-8 py-4 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+                                    >
+                                        Protect Another File
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Protect Button */}
-                        {!isProcessing && (
+                        {!isProcessing && !downloadUrl && (
                             <button
                                 onClick={protectPDF}
                                 className="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white text-xl font-bold py-6 rounded-2xl hover:from-red-700 hover:to-pink-700 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
