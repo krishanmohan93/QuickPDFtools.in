@@ -1,15 +1,13 @@
 User-agent: *
 Allow: /
-
-# Specifically allow the Next.js static assets so Google can render the page
-Allow: /_next/static/
-Allow: /_next/image/
-
 # Block API routes to save crawl budget
 Disallow: /api/
 
-# Optional: Block the main private next folder if you want, 
-# BUT keep the 'Allow' rules above for static files.
-# Disallow: /_next/
+# Explicitly allow Google crawlers used for search and ads review
+User-agent: Googlebot
+Allow: /
+
+User-agent: AdsBot-Google
+Allow: /
 
 Sitemap: https://quickpdftools.in/sitemap.xml

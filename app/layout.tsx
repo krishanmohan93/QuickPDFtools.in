@@ -105,6 +105,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
+        {/* Google AdSense site ownership verification (global, async, non-blocking) */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9049700160903379"
+          crossOrigin="anonymous"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
