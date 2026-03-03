@@ -4,6 +4,7 @@ import { useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import DragDropUpload from "./DragDropUpload";
 import { sanitizeFileNamePart, splitFileName } from "@/lib/fileName";
+import { getPdfLibUserMessage } from "@/lib/pdfErrors";
 
 type SplitMode = "pages" | "range" | "every";
 
@@ -47,6 +48,11 @@ export default function SplitPDFTool() {
             setRangeEnd(String(pageCount));
             setEveryN("1");
         } catch (error) {
+            const friendlyMessage = getPdfLibUserMessage(error);
+            if (friendlyMessage) {
+                alert(friendlyMessage);
+                return;
+            }
             console.error("Error loading PDF:", error);
             alert("Failed to load PDF. Please try again.");
         }
@@ -148,8 +154,13 @@ export default function SplitPDFTool() {
 
             alert(`Successfully created ${pagesToExtract.length} PDF file(s)!`);
         } catch (error) {
-            console.error("Error splitting PDF:", error);
-            alert("Failed to split PDF. Please try again.");
+            const friendlyMessage = getPdfLibUserMessage(error);
+            if (friendlyMessage) {
+                alert(friendlyMessage);
+            } else {
+                console.error("Error splitting PDF:", error);
+                alert("Failed to split PDF. Please try again.");
+            }
         } finally {
             setIsProcessing(false);
             setProgress(0);
@@ -456,7 +467,7 @@ export default function SplitPDFTool() {
                         <p className="mt-4">
                             This tool saves time and keeps your documents organized. For related tasks, you can
                             <a href="/merge-pdf" className="text-blue-600 hover:underline"> merge PDF files online</a>
-                             <br/> or <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDF documents</a>.
+                            <br /> or <a href="/compress-pdf" className="text-blue-600 hover:underline">compress PDF documents</a>.
                         </p>
                     </div>
                 </div>

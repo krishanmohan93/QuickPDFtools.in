@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { getPdfLibUserMessage } from '@/lib/pdfErrors';
 import { mergeTextItems, TextItem, detectTextWithContentStreams, replaceTextInPDFStreams, extractEmbeddedFonts } from '../lib/pdfEditingInternals';
 import { getPDFWorkerManager } from '../lib/workerManager';
 import CloudImport from '@/components/CloudImport';
@@ -232,19 +233,24 @@ export default function EditPDFTool() {
       });
 
     } catch (error) {
-      console.error('Error loading PDF:', error);
-
-      // Provide specific error messages based on error type
-      if (error instanceof Error) {
-        if (error.message.includes('memory') || error.message.includes('out of memory')) {
-          pushStatus('error', 'PDF is too large to process in browser. Try a smaller file or fewer pages.');
-        } else if (error.message.includes('corrupt') || error.message.includes('invalid')) {
-          pushStatus('error', 'PDF file appears to be corrupted. Please try a different file.');
-        } else {
-          pushStatus('error', `Failed to load PDF: ${error.message}`);
-        }
+      const friendlyMessage = getPdfLibUserMessage(error);
+      if (friendlyMessage) {
+        pushStatus('error', friendlyMessage);
       } else {
-        pushStatus('error', 'Failed to load PDF. Please try another file.');
+        console.error('Error loading PDF:', error);
+
+        // Provide specific error messages based on error type
+        if (error instanceof Error) {
+          if (error.message.includes('memory') || error.message.includes('out of memory')) {
+            pushStatus('error', 'PDF is too large to process in browser. Try a smaller file or fewer pages.');
+          } else if (error.message.includes('corrupt') || error.message.includes('invalid')) {
+            pushStatus('error', 'PDF file appears to be corrupted. Please try a different file.');
+          } else {
+            pushStatus('error', `Failed to load PDF: ${error.message}`);
+          }
+        } else {
+          pushStatus('error', 'Failed to load PDF. Please try another file.');
+        }
       }
     } finally {
       setIsProcessing(false);

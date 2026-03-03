@@ -143,46 +143,46 @@ export default function Home() {
             </h2>
 
             <div className="space-y-4">
-            <div className="flex gap-3 items-start">
-              <div className="text-blue-600 text-xl flex-shrink-0 mt-1">🔒</div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Your Privacy Matters</h3>
-                <p className="text-gray-600 transition-colors duration-300">
-                  Files are automatically deleted after processing. We do not store or share your documents with anyone.
-                </p>
+              <div className="flex gap-3 items-start">
+                <div className="text-blue-600 text-xl flex-shrink-0 mt-1">🔒</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Your Privacy Matters</h3>
+                  <p className="text-gray-600 transition-colors duration-300">
+                    Files are automatically deleted after processing. We do not store or share your documents with anyone.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-3 items-start">
-              <div className="text-blue-600 text-xl flex-shrink-0 mt-1">⚡</div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">No Registration Required</h3>
-                <p className="text-gray-600 transition-colors duration-300">
-                  Start working immediately. No need to create an account or remember passwords.
-                </p>
+              <div className="flex gap-3 items-start">
+                <div className="text-blue-600 text-xl flex-shrink-0 mt-1">⚡</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">No Registration Required</h3>
+                  <p className="text-gray-600 transition-colors duration-300">
+                    Start working immediately. No need to create an account or remember passwords.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-3 items-start">
-              <div className="text-blue-600 text-xl flex-shrink-0 mt-1">🧠</div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Built for Real Users</h3>
-                <p className="text-gray-600 transition-colors duration-300">
-                  Designed for students, professionals, and small businesses who need simple PDF solutions.
-                </p>
+              <div className="flex gap-3 items-start">
+                <div className="text-blue-600 text-xl flex-shrink-0 mt-1">🧠</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Built for Real Users</h3>
+                  <p className="text-gray-600 transition-colors duration-300">
+                    Designed for students, professionals, and small businesses who need simple PDF solutions.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-3 items-start">
-              <div className="text-blue-600 text-xl flex-shrink-0 mt-1">🌍</div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Works Everywhere</h3>
-                <p className="text-gray-600 transition-colors duration-300">
-                  Use from any device with a web browser - desktop, tablet, or mobile phone.
-                </p>
+              <div className="flex gap-3 items-start">
+                <div className="text-blue-600 text-xl flex-shrink-0 mt-1">🌍</div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Works Everywhere</h3>
+                  <p className="text-gray-600 transition-colors duration-300">
+                    Use from any device with a web browser - desktop, tablet, or mobile phone.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
       </section>
@@ -196,42 +196,42 @@ export default function Home() {
             </h2>
 
             <div className="space-y-6">
-            <div className="flex gap-4">
-              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                1
+              <div className="flex gap-4">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                  1
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Upload Your File</h3>
+                  <p className="text-gray-600 transition-colors duration-300">
+                    Click to select or drag and drop your PDF file from your computer or phone.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Upload Your File</h3>
-                <p className="text-gray-600 transition-colors duration-300">
-                  Click to select or drag and drop your PDF file from your computer or phone.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex gap-4">
-              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                2
+              <div className="flex gap-4">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                  2
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">We Process It</h3>
+                  <p className="text-gray-600 transition-colors duration-300">
+                    Your file is processed securely in your browser or on our servers, depending on the tool.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">We Process It</h3>
-                <p className="text-gray-600 transition-colors duration-300">
-                  Your file is processed securely in your browser or on our servers, depending on the tool.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex gap-4">
-              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
-                3
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Download Result</h3>
-                <p className="text-gray-600 transition-colors duration-300">
-                  Download your converted or edited file. Files are automatically deleted within an hour.
-                </p>
+              <div className="flex gap-4">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                  3
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-1 transition-colors duration-300">Download Result</h3>
+                  <p className="text-gray-600 transition-colors duration-300">
+                    Download your converted or edited file. Files are automatically deleted within an hour.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </div>
       </section>
@@ -245,22 +245,22 @@ export default function Home() {
             </h2>
 
             <div className="space-y-4 text-gray-700 leading-relaxed transition-colors duration-300">
-            <p>
-              {SITE_NAME} is a free online platform for quick PDF tools that helps you work with PDF files without installing any software.
-              We built this tool because we understand that not everyone wants to download programs or pay for subscriptions
-              just to merge a few files or convert a document.
-            </p>
+              <p>
+                {SITE_NAME} is a free online platform for quick PDF tools that helps you work with PDF files without installing any software.
+                We built this tool because we understand that not everyone wants to download programs or pay for subscriptions
+                just to merge a few files or convert a document.
+              </p>
 
-            <p>
-              Our tools are used by students preparing assignments, office workers managing documents, shop owners organizing
-              invoices, and teachers creating study materials. We keep things simple because PDF tasks should not be complicated.
-            </p>
+              <p>
+                Our tools are used by students preparing assignments, office workers managing documents, shop owners organizing
+                invoices, and teachers creating study materials. We keep things simple because PDF tasks should not be complicated.
+              </p>
 
-            <p>
-              We care about your privacy. Files uploaded to our servers are processed and then automatically deleted.
-              We do not collect personal information, and you can use all our tools without creating an account.
-            </p>
-          </div>
+              <p>
+                We care about your privacy. Files uploaded to our servers are processed and then automatically deleted.
+                We do not collect personal information, and you can use all our tools without creating an account.
+              </p>
+            </div>
           </div>
         </div>
       </section>

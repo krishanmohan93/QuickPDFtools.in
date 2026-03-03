@@ -5,6 +5,7 @@ import FileUpload from "@/components/FileUpload";
 import ProgressBar from "@/components/ProgressBar";
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from "@/lib/constants";
 import { buildDownloadName, splitFileName } from "@/lib/fileName";
+import { getPdfLibUserMessage } from "@/lib/pdfErrors";
 
 interface ToolPageProps {
     toolId: string;
@@ -149,8 +150,21 @@ export default function ToolPage({
 
                 for (let i = 0; i < files.length; i += 1) {
                     const file = files[i];
+                    if (file.size === 0) {
+                        throw new Error(`"${file.name}" is empty. Please remove it and try again.`);
+                    }
                     const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await PDFDocument.load(arrayBuffer);
+                    let pdf;
+                    try {
+                        pdf = await PDFDocument.load(arrayBuffer);
+                    } catch (error) {
+                        const friendlyMessage = getPdfLibUserMessage(error);
+                        if (friendlyMessage) {
+                            throw new Error(`${friendlyMessage} File: ${file.name}`);
+                        }
+                        const fallback = error instanceof Error ? error.message : "Unknown error";
+                        throw new Error(`Failed to read "${file.name}". ${fallback}`);
+                    }
                     const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                     copiedPages.forEach((page) => mergedPdf.addPage(page));
                     setProgress(Math.round(((i + 1) / files.length) * 100));
@@ -174,9 +188,14 @@ export default function ToolPage({
                 updateDownloadState(filename);
             } catch (error) {
                 setStatus("error");
-                const errorMessage = error instanceof Error ? error.message : "Failed to merge PDF files. Please try again.";
-                setMessage(errorMessage);
-                console.error(error);
+                const friendlyMessage = getPdfLibUserMessage(error);
+                if (friendlyMessage) {
+                    setMessage(friendlyMessage);
+                } else {
+                    const errorMessage = error instanceof Error ? error.message : "Failed to merge PDF files. Please try again.";
+                    setMessage(errorMessage);
+                    console.error(error);
+                }
             } finally {
                 setProcessing(false);
             }

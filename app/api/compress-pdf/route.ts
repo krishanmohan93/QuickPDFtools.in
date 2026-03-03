@@ -1,76 +1,125 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFDocument, PDFName, PDFArray, PDFDict } from "pdf-lib";
-import sharp from 'sharp';
+import { PDFDocument } from "pdf-lib";
+import fsp from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { spawn } from "node:child_process";
+import { resolveQpdfPath } from "@/lib/qpdfPath";
+import { resolveGhostscriptPath } from "@/lib/ghostscriptPath";
+import { saveFileToTemp, assertPdfHeader, detectEncryptedPdf } from "@/lib/unlockPdf";
+import { ENCRYPTED_PDF_MESSAGE } from "@/lib/pdfErrors";
+
+export const runtime = "nodejs";
+export const maxDuration = 180;
+
+type CompressionLevel = "low" | "medium" | "high" | "ultra";
+
+type CompressionSettings = {
+    level: CompressionLevel;
+    stripMetadata: boolean;
+    objectStreams: "preserve" | "generate";
+    recompressFlate: boolean;
+    timeoutMs: number;
+    allowLossy: boolean;
+    minSavingsBytes?: number;
+    gsProfile: GhostscriptProfile;
+    gsResolution: number;
+    gsJpegQuality: number;
+    gsForceRecompressJpeg: boolean;
+    gsAggressiveProfile: GhostscriptProfile;
+    gsAggressiveResolution: number;
+    gsAggressiveJpegQuality: number;
+    gsAggressiveForceRecompressJpeg: boolean;
+};
+
+const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000;
 
 export async function POST(request: NextRequest) {
-
     try {
         const formData = await request.formData();
         const file = formData.get("file0") as File;
-        const compressionLevel = formData.get("compressionLevel") as string || "medium";
+        const compressionLevel = (formData.get("compressionLevel") as string) || "medium";
 
         if (!file) {
-            return NextResponse.json(
-                { error: "Please upload a PDF file" },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: "Please upload a PDF file" }, { status: 400 });
         }
 
         const originalSize = file.size;
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
-
-        // Get compression settings based on level
         const compressionSettings = getCompressionSettings(compressionLevel);
 
-        // Compress images in the PDF
-        await compressPDFImages(pdfDoc, compressionSettings);
+        const temp = await saveFileToTemp(file, "compress-pdf");
+        let engine = "pdf-lib";
+        let warning: string | null = null;
+        let profile: string | null = null;
 
-        // Remove unnecessary data
-        if (compressionSettings.stripMetadata) {
-            removeMetadata(pdfDoc);
-        }
-
-        // Save with optimized settings
-        const compressedPdfBytes = await pdfDoc.save({
-            useObjectStreams: compressionSettings.level !== 'low',
-            addDefaultPage: false,
-            objectsPerTick: 50,
-        });
-
-        const compressedSize = compressedPdfBytes.length;
-        const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
-
-        // Validate the output PDF
-        if (compressedSize === 0 || compressedPdfBytes.length < 100) {
-            throw new Error("Generated PDF is invalid or empty");
-        }
-
-        // Verify PDF can be loaded back
         try {
-            await PDFDocument.load(compressedPdfBytes);
-        } catch (validationError) {
-            throw new Error("Generated PDF is corrupted and cannot be validated");
+            await assertPdfHeader(temp.filePath);
+            const isEncrypted = await detectEncryptedPdf(temp.filePath);
+            if (isEncrypted) {
+                return NextResponse.json({ error: ENCRYPTED_PDF_MESSAGE }, { status: 400 });
+            }
+
+            const preparedInput = await prepareInputFile(temp.filePath, temp.tempDir, compressionSettings);
+
+            let compressedPdfBytes: Uint8Array | null = null;
+
+            if (compressionSettings.allowLossy) {
+                const gsResult = await tryGhostscriptCompression(
+                    preparedInput,
+                    originalSize,
+                    compressionSettings
+                );
+                if (gsResult) {
+                    compressedPdfBytes = gsResult.bytes;
+                    engine = "ghostscript";
+                    profile = gsResult.profile;
+                } else {
+                    warning = "ghostscript_unavailable";
+                }
+            }
+
+            if (!compressedPdfBytes) {
+                compressedPdfBytes = await tryQpdfCompression(preparedInput, compressionSettings);
+                if (compressedPdfBytes) {
+                    engine = "qpdf";
+                } else {
+                    compressedPdfBytes = await compressWithPdfLib(preparedInput, compressionSettings);
+                }
+            }
+
+            const compressedSize = compressedPdfBytes.length;
+            const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+
+            if (compressedSize === 0 || compressedPdfBytes.length < 100) {
+                throw new Error("Generated PDF is invalid or empty");
+            }
+
+            try {
+                await PDFDocument.load(compressedPdfBytes);
+            } catch {
+                throw new Error("Generated PDF is corrupted and cannot be validated");
+            }
+
+            return new NextResponse(Buffer.from(compressedPdfBytes), {
+                status: 200,
+                headers: {
+                    "Content-Type": "application/pdf",
+                    "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}_compressed.pdf`,
+                    "X-Original-Size": originalSize.toString(),
+                    "X-Compressed-Size": compressedSize.toString(),
+                    "X-Compression-Ratio": `${compressionRatio}%`,
+                    "X-Compression-Engine": engine,
+                    ...(profile ? { "X-Compression-Profile": profile } : {}),
+                    ...(warning ? { "X-Compression-Warning": warning } : {}),
+                },
+            });
+        } finally {
+            await temp.cleanup();
         }
-
-        // Return the compressed PDF with metadata
-        const response = new NextResponse(Buffer.from(compressedPdfBytes), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}_compressed.pdf`,
-                "X-Original-Size": originalSize.toString(),
-                "X-Compressed-Size": compressedSize.toString(),
-                "X-Compression-Ratio": `${compressionRatio}%`,
-            },
-        });
-
-        return response;
-
     } catch (error) {
         console.error("Error compressing PDF:", error);
         return NextResponse.json(
-            { error: `Failed to compress PDF: ${error instanceof Error ? error.message : 'Unknown error'}` },
+            { error: `Failed to compress PDF: ${error instanceof Error ? error.message : "Unknown error"}` },
             { status: 500 }
         );
     }
@@ -79,144 +128,292 @@ export async function POST(request: NextRequest) {
 /**
  * Get compression settings based on level
  */
-function getCompressionSettings(level: string) {
+function getCompressionSettings(level: string): CompressionSettings {
     switch (level) {
         case "low":
             return {
-                level: 'low',
-                imageQuality: 85,
-                maxWidth: 2000,
-                maxHeight: 2000,
-                convertToGrayscale: false,
+                level: "low",
                 stripMetadata: false,
+                objectStreams: "preserve",
+                recompressFlate: false,
+                timeoutMs: DEFAULT_TIMEOUT_MS,
+                allowLossy: false,
+                gsProfile: "ebook",
+                gsResolution: 150,
+                gsJpegQuality: 80,
+                gsForceRecompressJpeg: false,
+                gsAggressiveProfile: "screen",
+                gsAggressiveResolution: 96,
+                gsAggressiveJpegQuality: 65,
+                gsAggressiveForceRecompressJpeg: false,
             };
         case "high":
             return {
-                level: 'high',
-                imageQuality: 50,
-                maxWidth: 1200,
-                maxHeight: 1200,
-                convertToGrayscale: false,
+                level: "high",
                 stripMetadata: true,
+                objectStreams: "generate",
+                recompressFlate: true,
+                timeoutMs: DEFAULT_TIMEOUT_MS,
+                allowLossy: true,
+                minSavingsBytes: 2 * 1024 * 1024,
+                gsProfile: "ebook",
+                gsResolution: 150,
+                gsJpegQuality: 75,
+                gsForceRecompressJpeg: false,
+                gsAggressiveProfile: "screen",
+                gsAggressiveResolution: 96,
+                gsAggressiveJpegQuality: 65,
+                gsAggressiveForceRecompressJpeg: false,
             };
-        default: // medium
+        case "ultra":
             return {
-                level: 'medium',
-                imageQuality: 70,
-                maxWidth: 1600,
-                maxHeight: 1600,
-                convertToGrayscale: false,
+                level: "ultra",
                 stripMetadata: true,
+                objectStreams: "generate",
+                recompressFlate: true,
+                timeoutMs: DEFAULT_TIMEOUT_MS,
+                allowLossy: true,
+                minSavingsBytes: 1 * 1024 * 1024,
+                gsProfile: "screen",
+                gsResolution: 96,
+                gsJpegQuality: 60,
+                gsForceRecompressJpeg: true,
+                gsAggressiveProfile: "screen",
+                gsAggressiveResolution: 72,
+                gsAggressiveJpegQuality: 50,
+                gsAggressiveForceRecompressJpeg: true,
+            };
+        default:
+            return {
+                level: "medium",
+                stripMetadata: true,
+                objectStreams: "generate",
+                recompressFlate: false,
+                timeoutMs: DEFAULT_TIMEOUT_MS,
+                allowLossy: false,
+                gsProfile: "ebook",
+                gsResolution: 150,
+                gsJpegQuality: 75,
+                gsForceRecompressJpeg: false,
+                gsAggressiveProfile: "screen",
+                gsAggressiveResolution: 96,
+                gsAggressiveJpegQuality: 65,
+                gsAggressiveForceRecompressJpeg: false,
             };
     }
 }
 
-/**
- * Compress images within a PDF document
- */
-async function compressPDFImages(pdfDoc: PDFDocument, settings: any): Promise<void> {
+async function prepareInputFile(inputPath: string, tempDir: string, settings: CompressionSettings) {
+    if (!settings.stripMetadata) return inputPath;
+    const bytes = await fsp.readFile(inputPath);
+    const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    removeMetadata(pdfDoc);
+    const strippedBytes = await pdfDoc.save({
+        useObjectStreams: true,
+        addDefaultPage: false,
+        objectsPerTick: 50,
+    });
+    const strippedPath = path.join(tempDir, `metadata-stripped-${Date.now()}.pdf`);
+    await fsp.writeFile(strippedPath, strippedBytes);
+    return strippedPath;
+}
+
+type GhostscriptProfile = "ebook" | "screen";
+
+async function tryGhostscriptCompression(
+    inputPath: string,
+    originalSize: number,
+    settings: CompressionSettings
+): Promise<{ bytes: Uint8Array; profile: GhostscriptProfile } | null> {
     try {
-        const pages = pdfDoc.getPages();
-        
-        // Get all image objects from the PDF
-        const pdfImages: any[] = [];
-        const context = pdfDoc.context;
-        const xObjects = context.enumerateIndirectObjects();
+        const first = await compressWithGhostscript(
+            inputPath,
+            settings.gsProfile,
+            settings.gsResolution,
+            settings.gsJpegQuality,
+            settings.gsForceRecompressJpeg,
+            settings
+        );
+        let best = { bytes: first, profile: settings.gsProfile as GhostscriptProfile };
 
-        for (const [ref, object] of xObjects) {
-            if (object instanceof PDFDict) {
-                const type = object.get(PDFName.of('Type'));
-                const subtype = object.get(PDFName.of('Subtype'));
-                
-                if (subtype && subtype.toString() === '/XObject') {
-                    const xObjectType = object.get(PDFName.of('Subtype'));
-                    if (xObjectType && xObjectType.toString() === '/Image') {
-                        pdfImages.push({ ref, dict: object });
-                    }
-                }
+        const minSavings = settings.minSavingsBytes ?? 0;
+        const currentSavings = originalSize - best.bytes.length;
+        const shouldTryAggressive =
+            settings.level === "ultra" ||
+            (minSavings > 0 && currentSavings < minSavings && originalSize >= minSavings * 2);
+
+        if (shouldTryAggressive) {
+            const second = await compressWithGhostscript(
+                inputPath,
+                settings.gsAggressiveProfile,
+                settings.gsAggressiveResolution,
+                settings.gsAggressiveJpegQuality,
+                settings.gsAggressiveForceRecompressJpeg,
+                settings
+            );
+            if (second.length < best.bytes.length) {
+                best = { bytes: second, profile: settings.gsAggressiveProfile };
             }
         }
 
-        // Compress each image
-        for (const { ref, dict } of pdfImages) {
-            try {
-                await compressImageObject(pdfDoc, ref, dict, settings);
-            } catch (error) {
-                console.warn('Failed to compress an image:', error);
-            }
-        }
+        return best;
     } catch (error) {
-        console.warn('Error during image compression:', error);
+        console.warn("ghostscript compression failed:", error);
+        return null;
     }
 }
 
-/**
- * Compress a specific image object in the PDF
- */
-async function compressImageObject(pdfDoc: PDFDocument, ref: any, dict: PDFDict, settings: any): Promise<void> {
+async function compressWithGhostscript(
+    inputPath: string,
+    profile: GhostscriptProfile,
+    resolution: number,
+    jpegQuality: number,
+    forceRecompressJpeg: boolean,
+    settings: CompressionSettings
+): Promise<Uint8Array> {
+    const gsPath = await resolveGhostscriptPath();
+    const outputDir = await fsp.mkdtemp(path.join(os.tmpdir(), "compress-pdf-gs-"));
+    const outputPath = path.join(outputDir, "compressed.pdf");
+
+    const args = buildGhostscriptArgs(
+        inputPath,
+        outputPath,
+        profile,
+        resolution,
+        jpegQuality,
+        forceRecompressJpeg
+    );
+
     try {
-        const width = dict.get(PDFName.of('Width'));
-        const height = dict.get(PDFName.of('Height'));
-        const colorSpace = dict.get(PDFName.of('ColorSpace'));
-        const filter = dict.get(PDFName.of('Filter'));
-
-        // Skip if already well compressed
-        if (filter && filter.toString().includes('DCTDecode')) {
-            return;
-        }
-
-        // Get image data
-        const stream = dict.context.lookup(ref);
-        if (!stream || !('getContents' in stream)) {
-            return;
-        }
-
-        let imageBuffer: Uint8Array;
-        try {
-            imageBuffer = (stream as any).getContents();
-        } catch {
-            return;
-        }
-
-        if (!imageBuffer || imageBuffer.length === 0) {
-            return;
-        }
-
-        // Resize if needed
-        const shouldResize = width && height && 
-            (Number(width) > settings.maxWidth || Number(height) > settings.maxHeight);
-
-        if (shouldResize || imageBuffer.length > 10000) {
-            try {
-                // Try to compress with sharp
-                let sharpInstance = sharp(Buffer.from(imageBuffer))
-                    .jpeg({ quality: settings.imageQuality, mozjpeg: true });
-
-                if (shouldResize) {
-                    sharpInstance = sharpInstance.resize(settings.maxWidth, settings.maxHeight, {
-                        fit: 'inside',
-                        withoutEnlargement: true,
-                    });
-                }
-
-                const compressedBuffer = await sharpInstance.toBuffer();
-
-                // Only use compressed version if it's actually smaller
-                if (compressedBuffer.length < imageBuffer.length) {
-                    // Embed the compressed image
-                    const compressedImage = await pdfDoc.embedJpg(compressedBuffer);
-                    
-                    // Update the reference (this is a simplified approach)
-                    // In practice, we'd need to update all references to this image
-                }
-            } catch (error) {
-                // If sharp fails, the image might not be in a supported format
-                console.warn('Could not compress image with sharp:', error);
-            }
-        }
-    } catch (error) {
-        console.warn('Error compressing image object:', error);
+        await runProcess(gsPath, args, settings.timeoutMs);
+        return await fsp.readFile(outputPath);
+    } finally {
+        await fsp.rm(outputDir, { recursive: true, force: true });
     }
+}
+
+function buildGhostscriptArgs(
+    inputPath: string,
+    outputPath: string,
+    profile: GhostscriptProfile,
+    resolution: number,
+    jpegQuality: number,
+    forceRecompressJpeg: boolean
+) {
+    const monoResolution = Math.max(300, resolution * 2);
+
+    return [
+        "-sDEVICE=pdfwrite",
+        "-dCompatibilityLevel=1.4",
+        "-dNOPAUSE",
+        "-dBATCH",
+        "-dQUIET",
+        "-dDetectDuplicateImages=true",
+        "-dCompressFonts=true",
+        "-dSubsetFonts=true",
+        "-dAutoRotatePages=/None",
+        `-dPDFSETTINGS=/${profile}`,
+        ...(forceRecompressJpeg ? ["-dPassThroughJPEGImages=false"] : []),
+        "-dDownsampleColorImages=true",
+        "-dDownsampleGrayImages=true",
+        "-dDownsampleMonoImages=true",
+        "-dColorImageDownsampleType=/Bicubic",
+        "-dGrayImageDownsampleType=/Bicubic",
+        "-dMonoImageDownsampleType=/Subsample",
+        `-dColorImageResolution=${resolution}`,
+        `-dGrayImageResolution=${resolution}`,
+        `-dMonoImageResolution=${monoResolution}`,
+        `-dJPEGQ=${jpegQuality}`,
+        `-sOutputFile=${outputPath}`,
+        inputPath,
+    ];
+}
+
+async function tryQpdfCompression(inputPath: string, settings: CompressionSettings): Promise<Uint8Array | null> {
+    try {
+        return await compressWithQpdf(inputPath, settings);
+    } catch (error) {
+        console.warn("qpdf compression failed, falling back to pdf-lib:", error);
+        return null;
+    }
+}
+
+async function compressWithQpdf(inputPath: string, settings: CompressionSettings): Promise<Uint8Array> {
+    const qpdfPath = await resolveQpdfPath();
+    const outputDir = await fsp.mkdtemp(path.join(os.tmpdir(), "compress-pdf-out-"));
+    const outputPath = path.join(outputDir, "compressed.pdf");
+
+    const args = [
+        `--object-streams=${settings.objectStreams}`,
+        "--stream-data=compress",
+        "--compress-streams=y",
+        ...(settings.recompressFlate ? ["--recompress-flate"] : []),
+        "--",
+        inputPath,
+        outputPath,
+    ];
+
+    try {
+        await runProcess(qpdfPath, args, settings.timeoutMs);
+        return await fsp.readFile(outputPath);
+    } finally {
+        await fsp.rm(outputDir, { recursive: true, force: true });
+    }
+}
+
+async function compressWithPdfLib(inputPath: string, settings: CompressionSettings): Promise<Uint8Array> {
+    const bytes = await fsp.readFile(inputPath);
+    const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    if (settings.stripMetadata) {
+        removeMetadata(pdfDoc);
+    }
+    return pdfDoc.save({
+        useObjectStreams: settings.objectStreams === "generate",
+        addDefaultPage: false,
+        objectsPerTick: 50,
+    });
+}
+
+function runProcess(command: string, args: string[], timeoutMs: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        let stderr = "";
+
+        const finish = (error?: Error) => {
+            if (settled) return;
+            settled = true;
+            if (error) {
+                reject(error);
+            } else {
+                resolve();
+            }
+        };
+
+        const processHandle = spawn(command, args, { stdio: ["ignore", "ignore", "pipe"] });
+
+        const timeoutId = setTimeout(() => {
+            processHandle.kill("SIGKILL");
+            finish(new Error("Compression timed out."));
+        }, timeoutMs);
+
+        processHandle.stderr?.on("data", (chunk) => {
+            stderr += chunk.toString();
+        });
+
+        processHandle.on("error", (err: NodeJS.ErrnoException) => {
+            clearTimeout(timeoutId);
+            finish(err);
+        });
+
+        processHandle.on("exit", (code) => {
+            clearTimeout(timeoutId);
+            if (code === 0) {
+                finish();
+                return;
+            }
+            finish(new Error(stderr || `Compression process failed with exit code ${code ?? "unknown"}`));
+        });
+    });
 }
 
 /**

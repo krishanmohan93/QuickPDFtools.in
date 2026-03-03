@@ -6,6 +6,7 @@ import crypto from "node:crypto";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { spawn } from "node:child_process";
+import { resolveQpdfPath } from "@/lib/qpdfPath";
 
 const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000;
 
@@ -114,7 +115,7 @@ export async function unlockPdfWithQpdf(options: {
     timeoutMs?: number;
 }): Promise<UnlockResult> {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    const qpdfPath = process.env.QPDF_PATH || "qpdf";
+    const qpdfPath = await resolveQpdfPath();
     const outputDir = await fsp.mkdtemp(path.join(os.tmpdir(), "unlock-pdf-out-"));
     const outputPath = path.join(outputDir, `${options.outputBaseName}_unlocked.pdf`);
 

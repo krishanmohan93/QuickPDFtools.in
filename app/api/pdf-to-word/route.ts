@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, PageBreak } from "docx";
 import { PDFDocument } from "pdf-lib";
+import fsp from "node:fs/promises";
+import path from "node:path";
+import { saveFileToTemp } from "@/lib/unlockPdf";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -214,40 +217,59 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Load PDF for validation
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        const totalPages = pdfDoc.getPageCount();
-
-        const pdfBuffer = Buffer.from(arrayBuffer);
-        let textContent = "";
-        let extractedPages: PageExtraction[] = [];
-        let extractedWithPdfJs = false;
+        const temp = await saveFileToTemp(file, "pdf-to-word");
 
         try {
-            const pdfjsResult = await extractWithPdfJs(pdfBuffer);
-            extractedPages = pdfjsResult.pages;
-            extractedWithPdfJs = extractedPages.some((page) => page.hasText);
-        } catch (error) {
-            console.warn("pdf.js extraction failed:", error);
-        }
+            // Load PDF for validation
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFDocument.load(arrayBuffer);
+            const totalPages = pdfDoc.getPageCount();
 
-        if (!extractedWithPdfJs) {
+            const pdfBuffer = Buffer.from(arrayBuffer);
+            let textContent = "";
+            let extractedPages: PageExtraction[] = [];
+            let extractedWithPdfJs = false;
+
             try {
-                if (pdfParse) {
-                    const pdfData = await pdfParse(pdfBuffer, {
-                        max: 0,
-                        normalizeWhitespace: true,
-                    });
-                    textContent = pdfData.text || "";
-                } else {
-                    throw new Error("pdf-parse not available");
-                }
-            } catch (parseError) {
-                console.warn("PDF parsing warning:", parseError);
-                textContent = "";
+                const pdfjsResult = await extractWithPdfJs(pdfBuffer);
+                extractedPages = pdfjsResult.pages;
+                extractedWithPdfJs = extractedPages.some((page) => page.hasText);
+            } catch (error) {
+                console.warn("pdf.js extraction failed:", error);
             }
-        }
+
+            if (!extractedWithPdfJs) {
+                try {
+                    if (pdfParse) {
+                        const pdfData = await pdfParse(pdfBuffer, {
+                            max: 0,
+                            normalizeWhitespace: true,
+                        });
+                        textContent = pdfData.text || "";
+                    } else {
+                        throw new Error("pdf-parse not available");
+                    }
+                } catch (parseError) {
+                    console.warn("PDF parsing warning:", parseError);
+                    textContent = "";
+                }
+            }
+
+            if (!extractedWithPdfJs && !textContent.trim()) {
+                const convertApiResult = await tryConvertWithConvertApi(temp.filePath, file.name);
+                if (convertApiResult) {
+                    return new NextResponse(Buffer.from(convertApiResult.bytes), {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            "Content-Disposition": `attachment; filename=${convertApiResult.fileName}`,
+                            "X-Original-Pages": totalPages.toString(),
+                            "X-Conversion-Mode": conversionMode,
+                            "X-Extraction-Mode": "convertapi",
+                        },
+                    });
+                }
+            }
 
         // Build document children array
         const children: any[] = [
@@ -385,25 +407,28 @@ export async function POST(request: NextRequest) {
 
         console.log("Conversion successful! Document size:", buffer.length, "bytes");
 
-        // Return the Word document
-        const extractionMode = extractedWithPdfJs
-            ? "pdfjs"
-            : textContent && textContent.trim()
-                ? "pdf-parse"
-                : "none";
+            // Return the Word document
+            const extractionMode = extractedWithPdfJs
+                ? "pdfjs"
+                : textContent && textContent.trim()
+                    ? "pdf-parse"
+                    : "none";
 
-        const response = new NextResponse(Buffer.from(buffer), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}.docx`,
-                "X-Original-Pages": totalPages.toString(),
-                "X-Conversion-Mode": conversionMode,
-                "X-Extraction-Mode": extractionMode,
-            },
-        });
+            const response = new NextResponse(Buffer.from(buffer), {
+                status: 200,
+                headers: {
+                    "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "Content-Disposition": `attachment; filename=${getFileNameWithoutExtension(file.name)}.docx`,
+                    "X-Original-Pages": totalPages.toString(),
+                    "X-Conversion-Mode": conversionMode,
+                    "X-Extraction-Mode": extractionMode,
+                },
+            });
 
-        return response;
+            return response;
+        } finally {
+            await temp.cleanup();
+        }
 
     } catch (error) {
         console.error("Error converting PDF to Word:", error);
@@ -421,3 +446,60 @@ function getFileNameWithoutExtension(filename: string): string {
     return filename.replace(/\.[^/.]+$/, "");
 }
 
+async function tryConvertWithConvertApi(
+    inputPath: string,
+    originalName: string
+): Promise<{ bytes: Uint8Array; fileName: string } | null> {
+    const secret = process.env.CONVERTAPI_SECRET;
+    if (!secret) return null;
+
+    const endpoint = process.env.CONVERTAPI_ENDPOINT || "https://v2.convertapi.com/convert/pdf/to/docx";
+    const outputName = `${getFileNameWithoutExtension(originalName)}.docx`;
+
+    const buffer = await fsp.readFile(inputPath);
+    const form = new FormData();
+    form.append("File", new Blob([buffer]), path.basename(inputPath));
+    form.append("StoreFile", "true");
+
+    const response = await fetch(`${endpoint}?Secret=${encodeURIComponent(secret)}`, {
+        method: "POST",
+        body: form,
+        duplex: "half",
+    });
+
+    const json = await safeParseJson(response);
+    if (!response.ok) {
+        const message = json?.Message || json?.error || "ConvertAPI conversion failed.";
+        console.warn("ConvertAPI error:", message);
+        return null;
+    }
+
+    const fileInfo = json?.Files?.[0];
+    if (!fileInfo) {
+        return null;
+    }
+
+    if (fileInfo.Url) {
+        const downloadResponse = await fetch(fileInfo.Url);
+        if (!downloadResponse.ok) return null;
+        const bytes = new Uint8Array(await downloadResponse.arrayBuffer());
+        return { bytes, fileName: outputName };
+    }
+
+    if (fileInfo.FileData) {
+        const data = Buffer.from(fileInfo.FileData, "base64");
+        return { bytes: data, fileName: outputName };
+    }
+
+    return null;
+}
+
+async function safeParseJson(response: Response) {
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) return null;
+    try {
+        return await response.json();
+    } catch {
+        return null;
+    }
+}

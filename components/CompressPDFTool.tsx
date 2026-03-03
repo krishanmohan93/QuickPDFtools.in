@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import DragDropUpload from "./DragDropUpload";
 import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
-type CompressionLevel = "low" | "medium" | "high";
+type CompressionLevel = "low" | "medium" | "high" | "ultra";
 
 export default function CompressPDFTool() {
     const [file, setFile] = useState<File | null>(null);
@@ -18,6 +18,7 @@ export default function CompressPDFTool() {
     const [downloadName, setDownloadName] = useState("");
     const [downloadBaseName, setDownloadBaseName] = useState("");
     const [downloadExtension, setDownloadExtension] = useState("");
+    const [compressionWarning, setCompressionWarning] = useState("");
 
     useEffect(() => {
         return () => {
@@ -38,6 +39,7 @@ export default function CompressPDFTool() {
         setOriginalSize(selectedFile.size);
         setCompressedSize(0);
         setCompressionRatio(0);
+        setCompressionWarning("");
         setDownloadUrl(null);
         setDownloadName("");
         setDownloadBaseName("");
@@ -71,6 +73,13 @@ export default function CompressPDFTool() {
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.error || 'Compression failed');
+            }
+
+            const warning = response.headers.get("X-Compression-Warning");
+            if (warning === "ghostscript_unavailable") {
+                setCompressionWarning("High/Ultra compression needs Ghostscript on the server for big size savings.");
+            } else {
+                setCompressionWarning("");
             }
 
             // Get compressed PDF
@@ -134,7 +143,7 @@ export default function CompressPDFTool() {
                         🗜️ Compress PDF Online Free - QuickPDFTools
                     </h1>
                     <p className="text-gray-600 text-lg">
-                        Reduce PDF file size while maintaining quality with quick, secure PDF tools online.
+                        Optimize PDFs with lossless (Low/Medium) or stronger (High) compression.
                     </p>
                 </div>
 
@@ -194,6 +203,7 @@ export default function CompressPDFTool() {
                                         setOriginalSize(0);
                                         setCompressedSize(0);
                                         setCompressionRatio(0);
+                                        setCompressionWarning("");
                                         setDownloadUrl(null);
                                         setDownloadName("");
                                         setDownloadBaseName("");
@@ -210,7 +220,7 @@ export default function CompressPDFTool() {
                         {/* Compression Level Selector */}
                         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
                             <h2 className="text-2xl font-bold text-gray-800 mb-6">Compression Level</h2>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                 <button
                                     onClick={() => setCompressionLevel("low")}
                                     disabled={isProcessing}
@@ -221,8 +231,8 @@ export default function CompressPDFTool() {
                                 >
                                     <div className="text-3xl mb-2">🟢</div>
                                     <div className="font-semibold">Low</div>
-                                    <div className="text-sm text-gray-500">Best quality</div>
-                                    <div className="text-xs text-gray-400 mt-2">~10-20% smaller</div>
+                                    <div className="text-sm text-gray-500">Fast, lossless</div>
+                                    <div className="text-xs text-gray-400 mt-2">Minimal changes</div>
                                 </button>
                                 <button
                                     onClick={() => setCompressionLevel("medium")}
@@ -234,8 +244,8 @@ export default function CompressPDFTool() {
                                 >
                                     <div className="text-3xl mb-2">🟡</div>
                                     <div className="font-semibold">Medium</div>
-                                    <div className="text-sm text-gray-500">Balanced</div>
-                                    <div className="text-xs text-gray-400 mt-2">~30-40% smaller</div>
+                                    <div className="text-sm text-gray-500">Lossless balance</div>
+                                    <div className="text-xs text-gray-400 mt-2">Better size reduction</div>
                                 </button>
                                 <button
                                     onClick={() => setCompressionLevel("high")}
@@ -247,13 +257,34 @@ export default function CompressPDFTool() {
                                 >
                                     <div className="text-3xl mb-2">🔴</div>
                                     <div className="font-semibold">High</div>
-                                    <div className="text-sm text-gray-500">Maximum compression</div>
-                                    <div className="text-xs text-gray-400 mt-2">~50-60% smaller</div>
+                                    <div className="text-sm text-gray-500">Strong compression</div>
+                                    <div className="text-xs text-gray-400 mt-2">May reduce image quality</div>
                                 </button>
+                                <button
+                                    onClick={() => setCompressionLevel("ultra")}
+                                    disabled={isProcessing}
+                                    className={`p-6 rounded-xl border-2 transition-all ${compressionLevel === "ultra"
+                                        ? "border-orange-600 bg-orange-100"
+                                        : "border-gray-200 hover:border-orange-300"
+                                        } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
+                                >
+                                    <div className="text-3xl mb-2">🧨</div>
+                                    <div className="font-semibold">Ultra</div>
+                                    <div className="text-sm text-gray-500">Maximum compression</div>
+                                    <div className="text-xs text-gray-400 mt-2">Lowest size, quality may drop</div>
+                                </button>
+                            </div>
+                            <div className="mt-4 text-xs text-gray-500">
+                                Low/Medium keep visual quality identical. High/Ultra use aggressive compression and may reduce image quality.
                             </div>
                         </div>
 
                         {/* Results */}
+                        {compressionWarning && !isProcessing && (
+                            <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                                {compressionWarning}
+                            </div>
+                        )}
                         {compressedSize > 0 && !isProcessing && (
                             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl shadow-xl p-8 mb-8 border-2 border-green-200">
                                 <h2 className="text-2xl font-bold text-green-800 mb-6 text-center">

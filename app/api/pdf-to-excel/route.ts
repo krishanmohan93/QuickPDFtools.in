@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import * as pdfjsLib from "pdfjs-dist";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
@@ -118,8 +117,9 @@ async function extractTablesFromPDF(pdfBuffer: Buffer): Promise<{
     tables: Array<{ data: string[][] }>;
     pagesProcessed: number;
 }> {
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.js");
     const data = new Uint8Array(pdfBuffer);
-        const pdf = await pdfjsLib.getDocument({ data, disableWorker: true }).promise;
+    const pdf = await pdfjsLib.getDocument({ data }).promise;
     const tables: Array<{ data: string[][] }> = [];
     let pagesProcessed = 0;
 

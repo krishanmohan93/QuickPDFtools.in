@@ -4,6 +4,7 @@ import { useEffect, useState, type DragEvent } from "react";
 import { PDFDocument } from "pdf-lib";
 import DragDropUpload from "./DragDropUpload";
 import { buildDownloadName, splitFileName } from "@/lib/fileName";
+import { getPdfLibUserMessage } from "@/lib/pdfErrors";
 
 export default function MergePDFTool() {
     const [files, setFiles] = useState<File[]>([]);
@@ -102,8 +103,21 @@ export default function MergePDFTool() {
             // Process each file
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
+                if (file.size === 0) {
+                    throw new Error(`"${file.name}" is empty. Please remove it and try again.`);
+                }
                 const arrayBuffer = await file.arrayBuffer();
-                const pdf = await PDFDocument.load(arrayBuffer);
+                let pdf: PDFDocument;
+                try {
+                    pdf = await PDFDocument.load(arrayBuffer);
+                } catch (error) {
+                    const friendlyMessage = getPdfLibUserMessage(error);
+                    if (friendlyMessage) {
+                        throw new Error(`${friendlyMessage} File: ${file.name}`);
+                    }
+                    const fallback = error instanceof Error ? error.message : "Unknown error";
+                    throw new Error(`Failed to read "${file.name}". ${fallback}`);
+                }
 
                 // Copy all pages from this PDF
                 const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
@@ -132,8 +146,14 @@ export default function MergePDFTool() {
             setDownloadExtension(parts.ext || ".pdf");
             setProgress(100);
         } catch (error) {
-            console.error("Error merging PDFs:", error);
-            alert("Failed to merge PDFs. Please try again.");
+            const friendlyMessage = getPdfLibUserMessage(error);
+            if (friendlyMessage) {
+                alert(friendlyMessage);
+            } else {
+                console.error("Error merging PDFs:", error);
+                const fallback = error instanceof Error ? error.message : "Failed to merge PDFs. Please try again.";
+                alert(fallback);
+            }
         } finally {
             setIsProcessing(false);
         }
