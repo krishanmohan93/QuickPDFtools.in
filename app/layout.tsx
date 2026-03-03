@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
+import ToolRouteAdSlot from "@/components/ToolRouteAdSlot";
 import { SITE_NAME, SITE_KEYWORDS, SITE_URL } from "@/lib/constants";
 
 const inter = Inter({
@@ -157,6 +158,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-white" suppressHydrationWarning>
         <Header />
         <main className="min-h-screen">{children}</main>
+        <ToolRouteAdSlot />
         <Footer />
         <CookieConsent />
       </body>

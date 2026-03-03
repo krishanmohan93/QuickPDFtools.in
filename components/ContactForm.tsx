@@ -16,6 +16,7 @@ export default function ContactForm() {
         subject: "",
         message: "",
     });
+    const [submittedEmail, setSubmittedEmail] = useState("");
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
@@ -42,10 +43,16 @@ export default function ContactForm() {
                 if (data.details) {
                     // Validation errors
                     const newErrors: FormErrors = {};
-                    data.details.forEach((error: { field: string; message: string }) => {
-                        newErrors[error.field as keyof FormErrors] = error.message;
+                    data.details.forEach((error: { field?: string; path?: string[]; message: string }) => {
+                        const field = error.field || error.path?.[0];
+                        if (field) {
+                            newErrors[field as keyof FormErrors] = error.message;
+                        }
                     });
                     setErrors(newErrors);
+                    if (Object.keys(newErrors).length === 0) {
+                        setApiError(data.error || "Please check your form details and try again.");
+                    }
                 } else {
                     setApiError(data.error || "Failed to submit form");
                 }
@@ -54,6 +61,7 @@ export default function ContactForm() {
             }
 
             // Success
+            setSubmittedEmail(formData.email);
             setSubmitted(true);
             setFormData({ name: "", email: "", subject: "", message: "" });
 
@@ -97,7 +105,7 @@ export default function ContactForm() {
                     Thank you for reaching out. We have received your message and will get back to you within 24-48 hours.
                 </p>
                 <p className="text-sm text-gray-500 mb-6">
-                    A confirmation email has been sent to <strong>{formData.email || "your email address"}</strong>.
+                    A confirmation email has been sent to <strong>{submittedEmail || "your email address"}</strong>.
                 </p>
                 <button
                     onClick={() => setSubmitted(false)}

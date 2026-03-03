@@ -5,10 +5,10 @@ import { sendContactNotification, sendConfirmationEmail } from '@/lib/email';
 
 // Validation schema
 const contactSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long'),
-    email: z.string().email('Invalid email address'),
-    subject: z.string().min(5, 'Subject must be at least 5 characters').max(200, 'Subject is too long'),
-    message: z.string().min(10, 'Message must be at least 10 characters').max(5000, 'Message is too long'),
+    name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
+    email: z.string().trim().min(3, 'Email is required').max(320, 'Email is too long'),
+    subject: z.string().trim().min(1, 'Subject is required').max(200, 'Subject is too long'),
+    message: z.string().trim().min(1, 'Message is required').max(5000, 'Message is too long'),
 });
 
 // Rate limiting
@@ -32,7 +32,10 @@ function checkRateLimit(ip: string): boolean {
 
 function getClientIP(request: NextRequest): string {
     const forwarded = request.headers.get('x-forwarded-for');
-    return forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+    const realIp = request.headers.get('x-real-ip');
+    if (forwarded) return forwarded.split(',')[0].trim();
+    if (realIp) return realIp.trim();
+    return 'unknown';
 }
 
 export async function POST(request: NextRequest) {
@@ -44,42 +47,60 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const validatedData = contactSchema.parse(body);
+        const parsed = contactSchema.safeParse(body);
 
-        // Save to DB
-        const savedMessage = await saveContactMessage({
-            ...validatedData,
-            ip_address: ip,
-        });
+        if (!parsed.success) {
+            return NextResponse.json(
+                {
+                    error: 'Validation failed',
+                    details: parsed.error.issues.map((issue) => ({
+                        field: String(issue.path[0] ?? 'form'),
+                        message: issue.message,
+                    })),
+                },
+                { status: 400 }
+            );
+        }
 
-        // Send Emails (Fire and forget, do not await)
-        // We wrap in a separate async wrapper to ensure it runs
-        (async () => {
-            try {
-                await sendContactNotification({ ...validatedData, ip_address: ip });
-                await sendConfirmationEmail({
-                    name: validatedData.name,
-                    email: validatedData.email,
-                    subject: validatedData.subject
-                });
-                console.log("Emails sent successfully");
-            } catch (emailError) {
-                console.error("Email sending background task failed:", emailError);
-            }
-        })();
+        const validatedData = parsed.data;
+
+        let savedMessageId: number | null = null;
+
+        try {
+            const savedMessage = await saveContactMessage({
+                ...validatedData,
+                ip_address: ip,
+            });
+            savedMessageId = savedMessage.id;
+        } catch (dbError) {
+            console.error('Contact DB save failed, continuing with email fallback:', dbError);
+        }
+
+        const [adminEmailSent, confirmationEmailSent] = await Promise.all([
+            sendContactNotification({ ...validatedData, ip_address: ip }),
+            sendConfirmationEmail({
+                name: validatedData.name,
+                email: validatedData.email,
+                subject: validatedData.subject,
+            }),
+        ]);
+
+        if (!savedMessageId && !adminEmailSent && !confirmationEmailSent) {
+            return NextResponse.json(
+                { error: 'Failed to submit. Please try again in a moment.' },
+                { status: 503 }
+            );
+        }
 
         return NextResponse.json({
             success: true,
             message: 'Message sent successfully!',
-            id: savedMessage.id,
+            id: savedMessageId,
         });
 
     } catch (error) {
         console.error('API Error:', error);
-        if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 });
-        }
-        return NextResponse.json({ error: 'Failed to submit', debug: String(error) }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to submit' }, { status: 500 });
     }
 }
 

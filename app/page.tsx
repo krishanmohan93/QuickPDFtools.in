@@ -1,6 +1,7 @@
 import ToolsGrid from "@/components/ToolsGrid";
 import HomeSEOContent from "@/components/HomeSEOContent";
 import AntigravityBackground from "@/components/AntigravityBackground";
+import AdsterraAdUnit from "@/components/AdsterraAdUnit";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
 import { generateHomeMetadata } from "@/lib/metadata";
 import type { Metadata } from "next";
@@ -88,6 +89,12 @@ export default function Home() {
             Choose the right PDF tool for your task, from merging and splitting to converting and compressing.
           </p>
           <ToolsGrid />
+        </div>
+      </section>
+
+      <section className="py-10 bg-white transition-colors duration-300">
+        <div className="w-full px-6 sm:px-8 lg:px-12 xl:px-16">
+          <AdsterraAdUnit />
         </div>
       </section>
 
