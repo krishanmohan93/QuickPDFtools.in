@@ -157,8 +157,10 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-white" suppressHydrationWarning>
         <Header />
-        <main className="min-h-screen">{children}</main>
-        <ToolRouteAdSlot />
+        <main className="min-h-screen">
+          {children}
+          <ToolRouteAdSlot />
+        </main>
         <Footer />
         <CookieConsent />
       </body>
