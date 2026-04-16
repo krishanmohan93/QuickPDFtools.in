@@ -4,6 +4,7 @@ import { PDFDocument } from "pdf-lib";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { saveFileToTemp } from "@/lib/unlockPdf";
+import { detectIfScanned, processScannedPage, smartProcessPdf } from "@/lib/pdfOcr";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -269,6 +270,31 @@ export async function POST(request: NextRequest) {
                         },
                     });
                 }
+
+                // Try OCR for scanned PDFs
+                console.log("Attempting OCR processing for scanned PDF...");
+                try {
+                    const ocrResult = await smartProcessPdf(pdfBuffer, {
+                        maxPagesToOCR: Math.min(totalPages, 10),
+                        scale: 2,
+                        skipOcrIfTextFound: true,
+                    });
+
+                    if (ocrResult.pages.length > 0) {
+                        console.log(`OCR: ${ocrResult.summary}`);
+                        extractedPages = ocrResult.pages.map((page, index) => ({
+                            lines: [{
+                                text: page.text,
+                                fontSize: 12,
+                                y: 0,
+                            }],
+                            hasText: page.text.trim().length > 0,
+                        }));
+                        extractedWithPdfJs = extractedPages.some((p) => p.hasText);
+                    }
+                } catch (ocrError) {
+                    console.warn("OCR processing failed:", ocrError);
+                }
             }
 
         // Build document children array
@@ -369,7 +395,7 @@ export async function POST(request: NextRequest) {
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: "No extractable text was found. This PDF appears to be scanned or uses complex layout/encoding.",
+                            text: "No extractable text found and OCR processing could not recover additional text.",
                             size: 22,
                             color: "666666",
                         }),
@@ -379,9 +405,9 @@ export async function POST(request: NextRequest) {
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: "For best results, run OCR on the PDF and try again.",
+                            text: "Possible causes: Complex layout/encoding, corrupted PDF, or image quality too low for OCR.",
                             size: 22,
-                            color: "666666",
+                            color: "999999",
                         }),
                     ],
                     spacing: { after: 200 },
@@ -422,6 +448,7 @@ export async function POST(request: NextRequest) {
                     "X-Original-Pages": totalPages.toString(),
                     "X-Conversion-Mode": conversionMode,
                     "X-Extraction-Mode": extractionMode,
+                    "X-Has-OCR-Processing": extractedPages.length > 0 ? "true" : "false",
                 },
             });
 

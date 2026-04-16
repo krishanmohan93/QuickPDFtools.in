@@ -1,9 +1,14 @@
 import { Metadata } from "next";
 import MergePDFPage from "@/components/MergePDFPage";
-import { generateToolMetadata } from "@/lib/metadata";
+import { generateMetadata } from "@/lib/seo";
 import { SITE_URL } from "@/lib/constants";
 
-export const metadata: Metadata = generateToolMetadata("merge-pdf");
+export const metadata: Metadata = generateMetadata({
+    title: "Merge PDF Online | QuickPDFTools",
+    description: "Merge multiple PDF files into a single document online for free with QuickPDFTools. Fast, secure, and no signup required.",
+    url: "/merge-pdf",
+    image: "/og-image.png",
+});
 
 export default function MergePDF() {
     const breadcrumbJsonLd = {

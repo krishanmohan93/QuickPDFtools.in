@@ -2,13 +2,66 @@ import ToolsGrid from "@/components/ToolsGrid";
 import HomeSEOContent from "@/components/HomeSEOContent";
 import AntigravityBackground from "@/components/AntigravityBackground";
 import AdsterraAdUnit from "@/components/AdsterraAdUnit";
+import BackToTopButton from "@/components/BackToTopButton";
 import { SITE_NAME, SITE_URL } from "@/lib/constants";
-import { generateHomeMetadata } from "@/lib/metadata";
+import { generateMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = generateHomeMetadata();
+export const metadata: Metadata = generateMetadata({
+  title: `${SITE_NAME} | Free Online PDF Tools`,
+  description: "Fast, secure, and free PDF tools to merge, compress, convert, edit, and protect documents online without registration.",
+  url: "/",
+});
 
 export default function Home() {
+  const testimonials = [
+    {
+      name: "Ravi K.",
+      city: "Mumbai",
+      quote: "I merge my shop bills every week using this. Fast and completely free!",
+    },
+    {
+      name: "Anjali M.",
+      city: "Delhi",
+      quote: "As a teacher, I convert all my Word notes to PDF before sharing. This tool saves me so much time.",
+    },
+    {
+      name: "Suresh P.",
+      city: "Bangalore",
+      quote: "Compressed a 50MB PDF to 5MB in seconds. Incredible tool, no login needed!",
+    },
+  ];
+
+  const featuredIn = ["Tech Blog", "EdTech India", "Startup Digest", "Digital Tools Weekly"];
+
+  const commonFaqs = [
+    {
+      question: "Is QuickPDFTools really free?",
+      answer:
+        "Yes, QuickPDFTools is completely free to use. You do not need to register, create an account, or pay for any subscription to use our basic tools.",
+    },
+    {
+      question: "Are my files safe?",
+      answer:
+        "Absolutely. We prioritize your privacy and security. All files uploaded to our servers are processed automatically and are permanently deleted shortly after processing.",
+    },
+    {
+      question: "Is there a limit on file size?",
+      answer:
+        "Currently, we support files up to 50MB for most tools. This ensures fast processing times and optimal performance for all users.",
+    },
+    {
+      question: "Can I use QuickPDFTools on my phone?",
+      answer:
+        "Yes. Our website is fully responsive and works on smartphones, tablets, and desktop computers.",
+    },
+    {
+      question: "How do I merge multiple PDFs?",
+      answer:
+        "Go to the Merge PDF tool, upload your files, arrange them in order, and click Merge PDF to download a combined file.",
+    },
+  ];
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -22,11 +75,28 @@ export default function Home() {
     ],
   };
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: commonFaqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+
   return (
     <div className="relative z-10 w-full">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       {/* Hero Section - Full Screen */}
       <section className="relative bg-white min-h-[calc(100svh-5rem)] sm:min-h-screen transition-colors duration-300 flex items-center">
@@ -89,6 +159,42 @@ export default function Home() {
             Choose the right PDF tool for your task, from merging and splitting to converting and compressing.
           </p>
           <ToolsGrid />
+
+          <div className="mt-14 rounded-3xl border border-gray-200 bg-white p-6 md:p-10 shadow-sm">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-700 mb-3">Social Proof</p>
+              <h3 className="text-2xl md:text-3xl font-bold text-gray-900">Trusted By Users Across India</h3>
+              <p className="text-gray-600 mt-3">
+                Real feedback from students, teachers, and business owners who use our tools in daily workflows.
+              </p>
+            </div>
+
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+              {testimonials.map((item) => (
+                <article key={`${item.name}-${item.city}`} className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                  <p className="text-gray-700 leading-relaxed">"{item.quote}"</p>
+                  <div className="mt-5 border-t border-gray-200 pt-4">
+                    <p className="font-semibold text-gray-900">{item.name}</p>
+                    <p className="text-sm text-gray-500">{item.city}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-100/70 p-5 md:p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500 mb-4">Featured In / As Seen On</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {featuredIn.map((brand) => (
+                <div
+                  key={brand}
+                  className="h-14 rounded-lg border border-gray-300 bg-gray-200/80 text-gray-600 text-sm font-semibold flex items-center justify-center"
+                >
+                  {brand}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -274,6 +380,8 @@ export default function Home() {
 
       {/* SEO Content Component Included Here */}
       <HomeSEOContent />
+
+      <BackToTopButton />
     </div>
   );
 }

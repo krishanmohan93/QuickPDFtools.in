@@ -1,9 +1,15 @@
 import CompressPDFTool from "@/components/CompressPDFTool";
-import { generateToolMetadata } from "@/lib/metadata";
+import ToolSEOContent from "@/components/ToolSEOContent";
+import { generateMetadata } from "@/lib/seo";
 import { SITE_URL } from "@/lib/constants";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = generateToolMetadata("compress-pdf");
+export const metadata: Metadata = generateMetadata({
+    title: "Compress PDF Online | QuickPDFTools",
+    description: "Compress PDF files online while keeping the best possible quality. Free, fast, and secure PDF compression from QuickPDFTools.",
+    url: "/compress-pdf",
+    image: "/og-image.png",
+});
 
 export default function CompressPDFPage() {
     const breadcrumbJsonLd = {
@@ -32,6 +38,7 @@ export default function CompressPDFPage() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
             <CompressPDFTool />
+            <ToolSEOContent toolId="compress-pdf" />
         </>
     );
 }

@@ -1,4 +1,5 @@
 import PDFToImageTool from "@/components/PDFToImageTool";
+import ToolSEOContent from "@/components/ToolSEOContent";
 import { Metadata } from "next";
 import { SITE_URL } from "@/lib/constants";
 
@@ -35,6 +36,7 @@ export default function PDFToJPGPage() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
             <PDFToImageTool format="jpg" />
+            <ToolSEOContent toolId="pdf-to-jpg" />
         </>
     );
 }

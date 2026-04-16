@@ -9,11 +9,20 @@ interface FormErrors {
     message?: string;
 }
 
+const SUBJECT_OPTIONS = [
+    "General Query",
+    "Bug Report",
+    "Partnership",
+    "Other",
+] as const;
+
+type SubjectOption = (typeof SUBJECT_OPTIONS)[number];
+
 export default function ContactForm() {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
-        subject: "",
+        subject: "General Query" as SubjectOption,
         message: "",
     });
     const [submittedEmail, setSubmittedEmail] = useState("");
@@ -22,8 +31,42 @@ export default function ContactForm() {
     const [errors, setErrors] = useState<FormErrors>({});
     const [apiError, setApiError] = useState<string>("");
 
+    const validateForm = (): FormErrors => {
+        const nextErrors: FormErrors = {};
+
+        if (!formData.name.trim()) {
+            nextErrors.name = "Name is required";
+        } else if (formData.name.trim().length < 2) {
+            nextErrors.name = "Name must be at least 2 characters";
+        }
+
+        if (!formData.email.trim()) {
+            nextErrors.email = "Email is required";
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+            nextErrors.email = "Please enter a valid email address";
+        }
+
+        if (!SUBJECT_OPTIONS.includes(formData.subject as SubjectOption)) {
+            nextErrors.subject = "Please choose a valid subject";
+        }
+
+        if (!formData.message.trim()) {
+            nextErrors.message = "Message is required";
+        } else if (formData.message.trim().length < 10) {
+            nextErrors.message = "Message should be at least 10 characters";
+        }
+
+        return nextErrors;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const clientErrors = validateForm();
+        if (Object.keys(clientErrors).length > 0) {
+            setErrors(clientErrors);
+            return;
+        }
+
         setLoading(true);
         setErrors({});
         setApiError("");
@@ -63,7 +106,12 @@ export default function ContactForm() {
             // Success
             setSubmittedEmail(formData.email);
             setSubmitted(true);
-            setFormData({ name: "", email: "", subject: "", message: "" });
+            setFormData({
+                name: "",
+                email: "",
+                subject: "General Query",
+                message: "",
+            });
 
             // Reset success message after 10 seconds
             setTimeout(() => {
@@ -77,7 +125,7 @@ export default function ContactForm() {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
@@ -170,17 +218,21 @@ export default function ContactForm() {
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
                     Subject <span className="text-red-500">*</span>
                 </label>
-                <input
-                    type="text"
+                <select
                     id="subject"
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
                     required
-                    className={`w-full px-4 py-3 border ${errors.subject ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
-                    placeholder="How can we help?"
+                    className={`w-full px-4 py-3 border ${errors.subject ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white`}
                     disabled={loading}
-                />
+                >
+                    {SUBJECT_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                            {option}
+                        </option>
+                    ))}
+                </select>
                 {errors.subject && <p className="mt-1 text-sm text-red-600">{errors.subject}</p>}
             </div>
 

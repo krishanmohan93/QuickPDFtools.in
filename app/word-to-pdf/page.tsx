@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import ToolPage from "@/components/ToolPage";
+import ToolSEOContent from "@/components/ToolSEOContent";
 import { generateToolMetadata } from "@/lib/metadata";
 import { ALLOWED_FILE_TYPES, SITE_URL } from "@/lib/constants";
 
@@ -48,6 +49,7 @@ export default function WordToPDFPage() {
                     "Share or print your PDF document",
                 ]}
             />
+            <ToolSEOContent toolId="word-to-pdf" />
         </>
     );
 }

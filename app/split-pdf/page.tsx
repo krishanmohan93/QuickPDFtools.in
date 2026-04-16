@@ -1,4 +1,5 @@
 import SplitPDFTool from "@/components/SplitPDFTool";
+import ToolSEOContent from "@/components/ToolSEOContent";
 import { generateToolMetadata } from "@/lib/metadata";
 import { SITE_URL } from "@/lib/constants";
 import type { Metadata } from "next";
@@ -32,6 +33,7 @@ export default function SplitPDFPage() {
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
             />
             <SplitPDFTool />
+            <ToolSEOContent toolId="split-pdf" />
         </>
     );
 }

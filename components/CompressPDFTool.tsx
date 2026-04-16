@@ -6,6 +6,30 @@ import { buildDownloadName, splitFileName } from "@/lib/fileName";
 
 type CompressionLevel = "low" | "medium" | "high" | "ultra";
 
+type CompressionPreset = {
+    estimatedReductionRange: string;
+    helperText: string;
+};
+
+const COMPRESSION_PRESETS: Record<"low" | "medium" | "high", CompressionPreset> = {
+    low: {
+        estimatedReductionRange: "10-30%",
+        helperText: "High quality, best for reports and readable scans",
+    },
+    medium: {
+        estimatedReductionRange: "25-55%",
+        helperText: "Balanced quality and size for everyday sharing",
+    },
+    high: {
+        estimatedReductionRange: "45-75%",
+        helperText: "Maximum compression for image-heavy documents",
+    },
+};
+
+function normalizeCompressionLevel(level: CompressionLevel): "low" | "medium" | "high" {
+    return level === "ultra" ? "high" : level;
+}
+
 export default function CompressPDFTool() {
     const [file, setFile] = useState<File | null>(null);
     const [compressionLevel, setCompressionLevel] = useState<CompressionLevel>("medium");
@@ -58,7 +82,7 @@ export default function CompressPDFTool() {
             // Create form data
             const formData = new FormData();
             formData.append('file0', file);
-            formData.append('compressionLevel', compressionLevel);
+            formData.append('compressionLevel', normalizeCompressionLevel(compressionLevel));
 
             setProgress(40);
 
@@ -192,6 +216,9 @@ export default function CompressPDFTool() {
                                         <div className="text-sm text-gray-500">
                                             Original size: {formatFileSize(originalSize)}
                                         </div>
+                                        <div className="text-xs text-orange-700 mt-1">
+                                            Estimated reduction: {COMPRESSION_PRESETS[normalizeCompressionLevel(compressionLevel)].estimatedReductionRange}
+                                        </div>
                                     </div>
                                 </div>
                                 <button
@@ -220,7 +247,7 @@ export default function CompressPDFTool() {
                         {/* Compression Level Selector */}
                         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
                             <h2 className="text-2xl font-bold text-gray-800 mb-6">Compression Level</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                 <button
                                     onClick={() => setCompressionLevel("low")}
                                     disabled={isProcessing}
@@ -231,8 +258,8 @@ export default function CompressPDFTool() {
                                 >
                                     <div className="text-3xl mb-2">🟢</div>
                                     <div className="font-semibold">Low</div>
-                                    <div className="text-sm text-gray-500">Fast, lossless</div>
-                                    <div className="text-xs text-gray-400 mt-2">Minimal changes</div>
+                                    <div className="text-sm text-gray-500">High quality</div>
+                                    <div className="text-xs text-gray-400 mt-2">{COMPRESSION_PRESETS.low.helperText}</div>
                                 </button>
                                 <button
                                     onClick={() => setCompressionLevel("medium")}
@@ -244,8 +271,8 @@ export default function CompressPDFTool() {
                                 >
                                     <div className="text-3xl mb-2">🟡</div>
                                     <div className="font-semibold">Medium</div>
-                                    <div className="text-sm text-gray-500">Lossless balance</div>
-                                    <div className="text-xs text-gray-400 mt-2">Better size reduction</div>
+                                    <div className="text-sm text-gray-500">Balanced</div>
+                                    <div className="text-xs text-gray-400 mt-2">{COMPRESSION_PRESETS.medium.helperText}</div>
                                 </button>
                                 <button
                                     onClick={() => setCompressionLevel("high")}
@@ -257,25 +284,12 @@ export default function CompressPDFTool() {
                                 >
                                     <div className="text-3xl mb-2">🔴</div>
                                     <div className="font-semibold">High</div>
-                                    <div className="text-sm text-gray-500">Strong compression</div>
-                                    <div className="text-xs text-gray-400 mt-2">May reduce image quality</div>
-                                </button>
-                                <button
-                                    onClick={() => setCompressionLevel("ultra")}
-                                    disabled={isProcessing}
-                                    className={`p-6 rounded-xl border-2 transition-all ${compressionLevel === "ultra"
-                                        ? "border-orange-600 bg-orange-100"
-                                        : "border-gray-200 hover:border-orange-300"
-                                        } ${isProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
-                                >
-                                    <div className="text-3xl mb-2">🧨</div>
-                                    <div className="font-semibold">Ultra</div>
                                     <div className="text-sm text-gray-500">Maximum compression</div>
-                                    <div className="text-xs text-gray-400 mt-2">Lowest size, quality may drop</div>
+                                    <div className="text-xs text-gray-400 mt-2">{COMPRESSION_PRESETS.high.helperText}</div>
                                 </button>
                             </div>
                             <div className="mt-4 text-xs text-gray-500">
-                                Low/Medium keep visual quality identical. High/Ultra use aggressive compression and may reduce image quality.
+                                Low keeps highest visual quality, Medium balances size and quality, High uses aggressive image recompression.
                             </div>
                         </div>
 
@@ -346,8 +360,11 @@ export default function CompressPDFTool() {
                                         onClick={handleDownload}
                                         className="mt-4 w-full bg-gradient-to-r from-orange-600 to-red-600 text-white text-lg font-bold py-4 rounded-xl hover:from-orange-700 hover:to-red-700 transition-all shadow-lg"
                                     >
-                                        Download Compressed PDF
+                                        Download Compressed PDF ({formatFileSize(compressedSize)})
                                     </button>
+                                    <p className="mt-2 text-center text-xs text-gray-500">
+                                        Before: {formatFileSize(originalSize)} | After: {formatFileSize(compressedSize)}
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -392,13 +409,13 @@ export default function CompressPDFTool() {
                     <ul className="space-y-2 text-orange-800">
                         <li>• <strong>Low:</strong> Minimal compression, best for documents with important images</li>
                         <li>• <strong>Medium:</strong> Balanced compression, good for most use cases</li>
-                        <li>• <strong>High:</strong> Maximum compression, best for text-heavy documents</li>
+                        <li>• <strong>High:</strong> Maximum compression, best for image-heavy or scanned PDFs</li>
                         <li>• Compression removes metadata and optimizes file structure</li>
                         <li>• Original file is never modified - you get a new compressed copy</li>
                     </ul>
                 </div>
 
-                {/* SEO Content Section */}
+                {/* Rich SEO content is now rendered by <ToolSEOContent toolId="compress-pdf" /> in the page */}
                 <div className="mt-12 bg-white rounded-2xl p-8 border-2 border-gray-200">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">
                         Compress PDF Online for Free

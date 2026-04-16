@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFDocument } from "pdf-lib";
+import { renderPdfPageToImageBuffer, getPdfMetadata, getFormatInfo } from "@/lib/pdfPageRenderer";
+import JSZip from "jszip";
+
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
-        const file = formData.get("file0") as File;
+        const file = (formData.get("file0") || formData.get("file")) as File;
+        const scaleParam = parseInt(formData.get("scale") as string) || 2;
+        const pagesToConvert = (formData.get("pages") as string) || "all";
 
         if (!file) {
             return NextResponse.json(
@@ -13,46 +19,107 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Load the PDF
-        const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        // PNG format
+        const format = "png";
+        const scale = Math.min(Math.max(1, scaleParam), 3);
 
-        // Get the first page
-        const pages = pdfDoc.getPages();
-        if (pages.length === 0) {
+        console.log(`Converting PDF to ${format} (scale: ${scale}x)`);
+
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfBuffer = Buffer.from(arrayBuffer);
+
+        // Get PDF metadata
+        const metadata = await getPdfMetadata(pdfBuffer);
+        if (!metadata.isValid || metadata.numPages === 0) {
             return NextResponse.json(
-                { error: "PDF has no pages" },
+                { error: "Invalid PDF file or PDF has no pages", details: metadata.error },
                 { status: 400 }
             );
         }
 
-        // For serverless compatibility, we return a simple SVG placeholder
-        // In production, consider using client-side rendering with PDF.js
-        const page = pages[0];
-        const { width, height } = page.getSize();
+        console.log(`PDF has ${metadata.numPages} pages`);
 
-        // Create SVG placeholder
-        const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${Math.floor(width)}" height="${Math.floor(height)}" xmlns="http://www.w3.org/2000/svg">
-    <rect width="100%" height="100%" fill="#ffffff"/>
-    <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#333">
-        PDF to PNG Conversion
-    </text>
-    <text x="50%" y="60%" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="#666">
-        Page 1 of ${pages.length}
-    </text>
-    <text x="50%" y="70%" font-family="Arial, sans-serif" font-size="12" text-anchor="middle" fill="#999">
-        For high-quality conversion, use client-side rendering
-    </text>
-</svg>`;
+        // Determine which pages to convert
+        let pageNumbers: number[] = [];
+        if (pagesToConvert === "all") {
+            pageNumbers = Array.from({ length: metadata.numPages }, (_, i) => i + 1);
+        } else if (pagesToConvert === "first") {
+            pageNumbers = [1];
+        } else {
+            // Parse page numbers like "1,2,3" or "1-5"
+            const parts = pagesToConvert.split(",");
+            for (const part of parts) {
+                if (part.includes("-")) {
+                    const [start, end] = part.split("-").map(p => parseInt(p.trim()));
+                    if (!isNaN(start) && !isNaN(end)) {
+                        for (let i = start; i <= end && i <= metadata.numPages; i++) {
+                            if (i > 0) pageNumbers.push(i);
+                        }
+                    }
+                } else {
+                    const pageNum = parseInt(part.trim());
+                    if (!isNaN(pageNum) && pageNum > 0 && pageNum <= metadata.numPages) {
+                        pageNumbers.push(pageNum);
+                    }
+                }
+            }
+        }
 
-        // Return SVG (browsers can display this directly)
-        return new NextResponse(svg, {
+        if (pageNumbers.length === 0) {
+            return NextResponse.json(
+                { error: "No valid pages specified" },
+                { status: 400 }
+            );
+        }
+
+        console.log(`Converting pages: ${pageNumbers.join(", ")}`);
+
+        // Render pages
+        const { mimeType, extension } = getFormatInfo(format);
+        const baseFileName = file.name.replace(/\.pdf$/i, "");
+        let responseBuffer: Buffer;
+        let contentType: string;
+        let fileName: string;
+
+        if (pageNumbers.length === 1) {
+            // Single page: return image directly
+            const result = await renderPdfPageToImageBuffer(pdfBuffer, pageNumbers[0], {
+                scale,
+                format: "png",
+            });
+
+            responseBuffer = result.buffer;
+            contentType = result.mimeType;
+            fileName = `${baseFileName}-page-${pageNumbers[0]}.${extension}`;
+        } else {
+            // Multiple pages: create ZIP archive
+            const zip = new JSZip();
+
+            for (const pageNum of pageNumbers) {
+                const result = await renderPdfPageToImageBuffer(pdfBuffer, pageNum, {
+                    scale,
+                    format: "png",
+                });
+                zip.file(`${baseFileName}-page-${pageNum}.${extension}`, result.buffer);
+            }
+
+            responseBuffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+            contentType = "application/zip";
+            fileName = `${baseFileName}-pages-${pageNumbers[0]}-to-${pageNumbers[pageNumbers.length - 1]}.zip`;
+        }
+
+        console.log(`Conversion complete: ${fileName} (size: ${responseBuffer.length} bytes)`);
+
+        return new NextResponse(responseBuffer, {
             status: 200,
             headers: {
-                "Content-Type": "image/svg+xml",
-                "Content-Disposition": `attachment; filename=page-1.svg`,
-                "X-Total-Pages": pages.length.toString(),
+                "Content-Type": contentType,
+                "Content-Disposition": `attachment; filename="${fileName}"`,
+                "X-Total-Pages": metadata.numPages.toString(),
+                "X-Converted-Pages": pageNumbers.length.toString(),
+                "X-Page-List": pageNumbers.join(","),
+                "X-Format": format,
+                "X-Scale": scale.toString(),
             },
         });
     } catch (error) {
@@ -60,10 +127,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
             {
                 error: "Failed to convert PDF to PNG",
-                note: "For production-quality conversion, consider using client-side PDF.js rendering"
+                details: error instanceof Error ? error.message : String(error),
             },
             { status: 500 }
         );
     }
 }
 
+/**
+ * GET endpoint for testing / status
+ */
+export async function GET() {
+    return NextResponse.json({
+        status: "ready",
+        format: "png",
+        maxScale: 3,
+        note: "POST a PDF file to convert pages to PNG images",
+    });
+}

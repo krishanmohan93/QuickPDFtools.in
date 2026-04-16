@@ -1,11 +1,100 @@
 
-import React from 'react';
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { BLOG_POSTS } from '@/lib/blog-data';
+import AuthorBio from '@/components/AuthorBio';
+import { BLOG_POSTS, type BlogPost } from '@/lib/blog-data';
 import { SITE_NAME, SITE_URL } from '@/lib/constants';
 import { formatDateUTC } from '@/lib/date';
+
+type TocItem = {
+    id: string;
+    text: string;
+    level: 2 | 3;
+};
+
+type BlogPostWithMeta = BlogPost & {
+    updatedAt?: string;
+};
+
+const stripHtml = (value: string) =>
+    value
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/\s+/g, ' ')
+        .trim();
+
+const slugify = (value: string) =>
+    value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'section';
+
+function buildContentWithToc(content: string): { html: string; toc: TocItem[] } {
+    const usedIds = new Map<string, number>();
+    const toc: TocItem[] = [];
+
+    const html = content.replace(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/gi, (match, level: string, attrs: string, inner: string) => {
+        const headingText = stripHtml(inner);
+        const baseId = slugify(headingText);
+        const currentCount = usedIds.get(baseId) ?? 0;
+        usedIds.set(baseId, currentCount + 1);
+        const id = currentCount === 0 ? baseId : `${baseId}-${currentCount + 1}`;
+
+        toc.push({
+            id,
+            text: headingText,
+            level: Number(level) as 2 | 3,
+        });
+
+        const attrsWithId = /\bid=/.test(attrs) ? attrs : `${attrs} id="${id}" class="scroll-mt-28"`;
+        return `<h${level}${attrsWithId}>${inner}</h${level}>`;
+    });
+
+    return { html, toc };
+}
+
+function calculateReadTime(content: string): string {
+    const words = stripHtml(content)
+        .split(/\s+/)
+        .filter(Boolean).length;
+    const minutes = Math.max(1, Math.ceil(words / 200));
+    return `${minutes} min read`;
+}
+
+function getRelatedPosts(post: BlogPostWithMeta, limit = 3): BlogPost[] {
+    const categoryMatches = BLOG_POSTS.filter((item) => item.slug !== post.slug && item.category === post.category);
+    const fallbackMatches = BLOG_POSTS.filter((item) => item.slug !== post.slug && item.category !== post.category);
+    const combined = [...categoryMatches, ...fallbackMatches];
+    const unique = new Map<string, BlogPost>();
+
+    for (const item of combined) {
+        if (!unique.has(item.slug)) {
+            unique.set(item.slug, item);
+        }
+        if (unique.size >= limit) break;
+    }
+
+    return Array.from(unique.values()).slice(0, limit);
+}
+
+function getAvatarInitials(name: string) {
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+}
 
 interface Props {
     params: Promise<{ slug: string }>;
@@ -13,7 +102,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug } = await params;
-    const post = BLOG_POSTS.find((p) => p.slug === slug);
+    const post = BLOG_POSTS.find((p) => p.slug === slug) as BlogPostWithMeta | undefined;
 
     if (!post) {
         return {
@@ -32,6 +121,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             description: post.excerpt,
             type: 'article',
             publishedTime: post.date,
+            modifiedTime: post.updatedAt ?? post.date,
             authors: [post.author],
             url: `${SITE_URL}/blog/${post.slug}`,
             images: [
@@ -54,295 +144,272 @@ export async function generateStaticParams() {
 
 export default async function BlogPostPage({ params }: Props) {
     const { slug } = await params;
-    const post = BLOG_POSTS.find((p) => p.slug === slug);
+    const post = BLOG_POSTS.find((item) => item.slug === slug) as BlogPostWithMeta | undefined;
 
     if (!post) {
         notFound();
     }
 
-    // Get related posts from the same category
-    const relatedPosts = BLOG_POSTS
-        .filter(p => p.category === post.category && p.slug !== post.slug)
-        .slice(0, 3);
-
-    // Article Schema (JSON-LD)
-    const jsonLd = {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        headline: post.title,
-        description: post.excerpt,
-        image: post.image,
-        author: {
-            "@type": "Person",
-            name: post.author,
-        },
-        publisher: {
-            "@type": "Organization",
-            name: SITE_NAME,
-            logo: {
-                "@type": "ImageObject",
-                url: `${SITE_URL}/logo.png`,
-            },
-        },
-        datePublished: post.date,
-        dateModified: post.date,
-        mainEntityOfPage: {
-            "@type": "WebPage",
-            "@id": `${SITE_URL}/blog/${post.slug}`,
-        },
-    };
-
-    const breadcrumbJsonLd = {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        itemListElement: [
-            {
-                "@type": "ListItem",
-                position: 1,
-                name: "Home",
-                item: SITE_URL,
-            },
-            {
-                "@type": "ListItem",
-                position: 2,
-                name: "Blog",
-                item: `${SITE_URL}/blog`,
-            },
-            {
-                "@type": "ListItem",
-                position: 3,
-                name: post.title,
-                item: `${SITE_URL}/blog/${post.slug}`,
-            },
-        ],
-    };
+    const publishedDate = formatDateUTC(post.date, 'long');
+    const updatedDate = formatDateUTC(post.updatedAt ?? post.date, 'long');
+    const readTime = calculateReadTime(post.content);
+    const { html: contentWithIds, toc } = buildContentWithToc(post.content);
+    const relatedPosts = getRelatedPosts(post, 3);
+    const authorInitials = getAvatarInitials(post.author);
 
     return (
-        <div className="bg-white min-h-screen">
-            {/* JSON-LD Script */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
-            />
-
-            {/* Article Container */}
-            <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Breadcrumb */}
-                <nav className="flex items-center text-sm text-gray-500 mb-8" aria-label="Breadcrumb">
-                    <Link href="/" className="hover:text-gray-700 transition-colors">Home</Link>
-                    <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <Link href="/blog" className="hover:text-gray-700 transition-colors">Blog</Link>
-                    <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-900">{post.category}</span>
+        <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_55%,#f8fafc_100%)] text-slate-900">
+            <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+                <nav className="mb-8 flex flex-wrap items-center gap-2 text-sm text-slate-500" aria-label="Breadcrumb">
+                    <Link href="/" className="font-medium text-slate-600 transition-colors hover:text-slate-900">
+                        Home
+                    </Link>
+                    <span className="text-slate-300">/</span>
+                    <Link href="/blog" className="font-medium text-slate-600 transition-colors hover:text-slate-900">
+                        Blog
+                    </Link>
+                    <span className="text-slate-300">/</span>
+                    <Link href={`/blog?category=${encodeURIComponent(post.category.toLowerCase())}`} className="font-medium text-slate-600 transition-colors hover:text-slate-900">
+                        {post.category}
+                    </Link>
                 </nav>
 
-                {/* Article Header */}
-                <header className="mb-12">
-                    {/* Category Badge */}
-                    <div className="mb-4">
-                        <Link
-                            href={`/blog?category=${post.category.toLowerCase()}`}
-                            className="inline-block bg-gray-700 text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors"
-                            style={{ color: '#ffffff' }}
-                        >
-                            {post.category}
-                        </Link>
-                    </div>
-
-                    {/* Title */}
-                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                        {post.title}
-                    </h1>
-
-                    {/* Meta Information */}
-                    <div className="flex flex-wrap items-center gap-4 text-gray-600 pb-6 border-b border-gray-200">
-                        <div className="flex items-center">
-                            <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center font-bold text-lg mr-3" style={{ color: '#ffffff' }}>
-                                {post.author.charAt(0)}
+                <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+                    <article className="min-w-0">
+                        <header className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+                            <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-slate-50 px-6 py-5 sm:px-8">
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Link
+                                        href={`/blog?category=${encodeURIComponent(post.category.toLowerCase())}`}
+                                        className="inline-flex items-center rounded-full bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-700"
+                                    >
+                                        {post.category}
+                                    </Link>
+                                    <span className="inline-flex items-center rounded-full bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 ring-1 ring-inset ring-sky-200">
+                                        {readTime}
+                                    </span>
+                                    <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                                        Last updated: {updatedDate}
+                                    </span>
+                                </div>
                             </div>
-                            <div>
-                                <p className="font-semibold text-gray-900">{post.author}</p>
-                                <p className="text-sm text-gray-500">PDF Tools Specialist</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center">
-                                <svg className="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <time dateTime={post.date} suppressHydrationWarning>
-                                    {formatDateUTC(post.date, "long")}
-                                </time>
-                            </div>
-                            <span>•</span>
-                            <div className="flex items-center">
-                                <svg className="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span>{post.readTime}</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Last Updated */}
-                    <p className="text-sm text-gray-500 mt-4">
-                        Last updated: <span suppressHydrationWarning>{formatDateUTC(post.date, "long")}</span>
-                    </p>
-                </header>
+                            <div className="px-6 py-8 sm:px-8 sm:py-10">
+                                <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+                                    {post.title}
+                                </h1>
+                                <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
+                                    {post.excerpt}
+                                </p>
 
-                {/* Article Content */}
-                <div
-                    className="prose prose-lg max-w-none
-                        prose-headings:font-bold prose-headings:text-gray-900
-                        prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6
-                        prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
-                        prose-h4:text-xl prose-h4:mt-6 prose-h4:mb-3
-                        prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6
-                        prose-a:text-gray-700 prose-a:no-underline hover:prose-a:underline
-                        prose-strong:text-gray-900 prose-strong:font-semibold
-                        prose-ul:my-6 prose-ul:space-y-2
-                        prose-ol:my-6 prose-ol:space-y-2
-                        prose-li:text-gray-700
-                        prose-code:text-gray-700 prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-                        prose-blockquote:border-l-4 prose-blockquote:border-gray-500 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-gray-700"
-                    dangerouslySetInnerHTML={{ __html: post.content }}
-                />
-
-                {/* Author Bio */}
-                <div className="mt-12 p-6 bg-gray-50 border border-gray-200 rounded-xl">
-                    <div className="flex items-start gap-4">
-                        <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center font-bold text-2xl flex-shrink-0" style={{ color: '#ffffff' }}>
-                            {post.author.charAt(0)}
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">About {post.author}</h3>
-                            <p className="text-gray-600 leading-relaxed">
-                                {post.author} is a PDF tools specialist at {SITE_NAME}, dedicated to helping users work more
-                                efficiently with digital documents. With expertise in document management, security, and productivity,
-                                they provide practical insights and tutorials for everyday PDF tasks.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Share Section */}
-                <div className="mt-12 pt-8 border-t border-gray-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Share this article</h3>
-                    <div className="flex flex-wrap gap-3">
-                        <a
-                            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 bg-black px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-                            style={{ color: '#ffffff' }}
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                            </svg>
-                            Share on X
-                        </a>
-                        <a
-                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 bg-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-                            style={{ color: '#ffffff' }}
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                            </svg>
-                            Share on Facebook
-                        </a>
-                        <a
-                            href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`${SITE_URL}/blog/${post.slug}`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 bg-gray-800 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors"
-                            style={{ color: '#ffffff' }}
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                            </svg>
-                            Share on LinkedIn
-                        </a>
-                    </div>
-                </div>
-            </article>
-
-            {/* Related Articles */}
-            {relatedPosts.length > 0 && (
-                <section className="bg-gray-50 border-t border-gray-200 py-12">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-8">Related Articles</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {relatedPosts.map((relatedPost) => (
-                                <article key={relatedPost.slug} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-                                    <div className="h-48 bg-gray-700 flex items-center justify-center">
-                                        <span className="font-semibold" style={{ color: '#ffffff' }}>{relatedPost.category}</span>
-                                    </div>
-                                    <div className="p-6">
-                                        <Link href={`/blog/${relatedPost.slug}`} className="block group">
-                                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-gray-700 transition-colors mb-2 line-clamp-2">
-                                                {relatedPost.title}
-                                            </h3>
-                                        </Link>
-                                        <p className="text-gray-600 text-sm line-clamp-2 mb-4">{relatedPost.excerpt}</p>
-                                        <div className="flex items-center text-xs text-gray-500">
-                                            <time dateTime={relatedPost.date} suppressHydrationWarning>
-                                                {formatDateUTC(relatedPost.date, "short")}
-                                            </time>
-                                            <span className="mx-2">•</span>
-                                            <span>{relatedPost.readTime}</span>
+                                <div className="mt-8 flex flex-wrap items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:px-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative h-12 w-12 overflow-hidden rounded-full border border-slate-200 bg-slate-900 shadow-sm">
+                                            <Image
+                                                src="/authors/media__1774285319900.jpg"
+                                                alt={`${post.author} avatar`}
+                                                fill
+                                                sizes="48px"
+                                                className="object-cover"
+                                                priority={false}
+                                            />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-900">{post.author}</p>
+                                            <p className="text-sm text-slate-500">QuickPDFTools contributor</p>
                                         </div>
                                     </div>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
 
-            {/* About QuickPDFTools Section */}
-            <section className="bg-white border-t border-gray-200 py-12">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">About {SITE_NAME}</h2>
-                    <p className="text-gray-600 leading-relaxed mb-6">
-                        {SITE_NAME} is a free online platform that provides professional PDF tools for everyone.
-                        We believe document management should be simple, secure, and accessible. Our mission is to
-                        help individuals and businesses work more efficiently with digital documents through intuitive
-                        tools and educational content.
-                    </p>
-                    <p className="text-gray-600 leading-relaxed mb-6">
-                        All our tools are completely free to use, require no registration, and prioritize your privacy
-                        and security. Files are processed securely and automatically deleted after processing.
-                    </p>
-                    <div className="flex flex-wrap gap-4 text-sm">
-                        <Link href="/privacy" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
-                            Privacy Policy
-                        </Link>
-                        <span className="text-gray-300">|</span>
-                        <Link href="/about-us" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
-                            About Us
-                        </Link>
-                        <span className="text-gray-300">|</span>
-                        <Link href="/contact-us" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
-                            Contact
-                        </Link>
-                        <span className="text-gray-300">|</span>
-                        <Link href="/disclaimer" className="text-gray-700 hover:text-gray-900 hover:underline font-medium">
-                            Disclaimer
-                        </Link>
-                    </div>
+                                    <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                                        <span className="inline-flex items-center rounded-full bg-white px-3 py-1.5 ring-1 ring-inset ring-slate-200">
+                                            Published: <time className="ml-1 font-medium text-slate-900" dateTime={post.date} suppressHydrationWarning>{publishedDate}</time>
+                                        </span>
+                                        <span className="inline-flex items-center rounded-full bg-white px-3 py-1.5 ring-1 ring-inset ring-slate-200">
+                                            Updated: <span className="ml-1 font-medium text-slate-900">{updatedDate}</span>
+                                        </span>
+                                        <span className="inline-flex items-center rounded-full bg-white px-3 py-1.5 ring-1 ring-inset ring-slate-200">
+                                            Read time: <span className="ml-1 font-medium text-slate-900">{readTime}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div className="mt-8 lg:hidden">
+                            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <div className="mb-4 flex items-center justify-between gap-4">
+                                    <h2 className="text-lg font-semibold text-slate-950">Table of Contents</h2>
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                        Quick links
+                                    </span>
+                                </div>
+                                {toc.length > 0 ? (
+                                    <nav aria-label="Table of contents">
+                                        <ul className="space-y-2">
+                                            {toc.map((item) => (
+                                                <li key={item.id} className={item.level === 3 ? 'pl-4' : ''}>
+                                                    <a
+                                                        href={`#${item.id}`}
+                                                        className="group flex items-start gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                                                    >
+                                                        <span className={`mt-2 h-1.5 w-1.5 rounded-full ${item.level === 2 ? 'bg-slate-900' : 'bg-slate-400'}`} />
+                                                        <span className="leading-6">{item.text}</span>
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </nav>
+                                ) : (
+                                    <p className="text-sm text-slate-500">This article has no section headings to index.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                            <div
+                                className="prose prose-slate max-w-none
+                                    prose-headings:scroll-mt-28 prose-headings:font-bold prose-headings:text-slate-950
+                                    prose-h2:mt-12 prose-h2:mb-5 prose-h2:text-3xl
+                                    prose-h3:mt-8 prose-h3:mb-4 prose-h3:text-2xl
+                                    prose-p:mb-6 prose-p:leading-8 prose-p:text-slate-700
+                                    prose-a:text-sky-700 prose-a:no-underline hover:prose-a:underline
+                                    prose-strong:text-slate-950 prose-strong:font-semibold
+                                    prose-ul:my-6 prose-ul:space-y-2
+                                    prose-ol:my-6 prose-ol:space-y-2
+                                    prose-li:text-slate-700
+                                    prose-code:rounded-md prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-slate-800
+                                    prose-blockquote:border-l-4 prose-blockquote:border-slate-300 prose-blockquote:pl-6 prose-blockquote:italic prose-blockquote:text-slate-600"
+                                dangerouslySetInnerHTML={{ __html: contentWithIds }}
+                            />
+                        </div>
+
+                        <div className="mt-12">
+                            <AuthorBio />
+                        </div>
+
+                        <section className="mt-12 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                            <div className="mb-6 flex items-end justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">More to read</p>
+                                    <h2 className="mt-2 text-2xl font-bold text-slate-950">Related Articles</h2>
+                                </div>
+                                <Link href="/blog" className="text-sm font-semibold text-sky-700 transition-colors hover:text-sky-900">
+                                    View all posts
+                                </Link>
+                            </div>
+
+                            <div className="grid gap-6 md:grid-cols-3">
+                                {relatedPosts.map((relatedPost) => (
+                                    <article key={relatedPost.slug} className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                                        <div className="border-b border-slate-200 bg-gradient-to-br from-slate-900 to-slate-700 px-5 py-4">
+                                            <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] !text-white ring-1 ring-white/25">
+                                                {relatedPost.category}
+                                            </span>
+                                        </div>
+                                        <div className="p-5">
+                                            <Link href={`/blog/${relatedPost.slug}`} className="block">
+                                                <h3 className="text-lg font-bold leading-7 text-slate-950 transition-colors group-hover:text-sky-700">
+                                                    {relatedPost.title}
+                                                </h3>
+                                            </Link>
+                                            <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">
+                                                {relatedPost.excerpt}
+                                            </p>
+                                            <div className="mt-5 flex flex-wrap items-center gap-3 text-xs font-medium text-slate-500">
+                                                <time dateTime={relatedPost.date} suppressHydrationWarning>
+                                                    {formatDateUTC(relatedPost.date, 'short')}
+                                                </time>
+                                                <span>•</span>
+                                                <span>{relatedPost.readTime}</span>
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        </section>
+
+                        <section className="mt-12 rounded-3xl border border-slate-200 bg-slate-950 px-6 py-8 text-white shadow-sm sm:px-8">
+                            <h2 className="text-2xl font-bold !text-white">About {SITE_NAME}</h2>
+                            <p className="mt-4 max-w-3xl text-sm leading-7 !text-slate-200">
+                                {SITE_NAME} provides free, secure PDF tools and practical document tutorials for everyday workflows.
+                                We focus on simple interfaces, fast results, and useful guidance that helps readers complete tasks without friction.
+                            </p>
+                            <div className="mt-6 flex flex-wrap gap-4 text-sm font-medium !text-slate-100">
+                                <Link href="/privacy" className="!text-slate-100 transition-colors hover:!text-white">
+                                    Privacy Policy
+                                </Link>
+                                <Link href="/about-us" className="!text-slate-100 transition-colors hover:!text-white">
+                                    About Us
+                                </Link>
+                                <Link href="/contact-us" className="!text-slate-100 transition-colors hover:!text-white">
+                                    Contact
+                                </Link>
+                                <Link href="/disclaimer" className="!text-slate-100 transition-colors hover:!text-white">
+                                    Disclaimer
+                                </Link>
+                            </div>
+                        </section>
+                    </article>
+
+                    <aside className="hidden lg:block">
+                        <div className="sticky top-24 space-y-6">
+                            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <div className="mb-4 flex items-center justify-between gap-4">
+                                    <h2 className="text-lg font-semibold text-slate-950">Table of Contents</h2>
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                                        Auto
+                                    </span>
+                                </div>
+                                {toc.length > 0 ? (
+                                    <nav aria-label="Table of contents">
+                                        <ul className="space-y-2">
+                                            {toc.map((item) => (
+                                                <li key={item.id} className={item.level === 3 ? 'pl-4' : ''}>
+                                                    <a
+                                                        href={`#${item.id}`}
+                                                        className="group flex items-start gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                                                    >
+                                                        <span className={`mt-2 h-1.5 w-1.5 rounded-full ${item.level === 2 ? 'bg-slate-900' : 'bg-slate-400'}`} />
+                                                        <span className="leading-6">{item.text}</span>
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </nav>
+                                ) : (
+                                    <p className="text-sm leading-6 text-slate-500">No H2 or H3 headings were found in this article.</p>
+                                )}
+                            </div>
+
+                            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Post details</p>
+                                <dl className="mt-4 space-y-4 text-sm">
+                                    <div>
+                                        <dt className="text-slate-500">Author</dt>
+                                        <dd className="mt-1 font-medium text-slate-950">{post.author}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-slate-500">Category</dt>
+                                        <dd className="mt-1 font-medium text-slate-950">{post.category}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-slate-500">Published</dt>
+                                        <dd className="mt-1 font-medium text-slate-950">{publishedDate}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-slate-500">Updated</dt>
+                                        <dd className="mt-1 font-medium text-slate-950">{updatedDate}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-slate-500">Read time</dt>
+                                        <dd className="mt-1 font-medium text-slate-950">{readTime}</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                        </div>
+                    </aside>
                 </div>
-            </section>
+            </main>
         </div>
     );
 }

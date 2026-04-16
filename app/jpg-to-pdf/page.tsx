@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import ToolPage from "@/components/ToolPage";
+import ToolSEOContent from "@/components/ToolSEOContent";
 import { generateToolMetadata } from "@/lib/metadata";
 import { ALLOWED_FILE_TYPES, SITE_URL } from "@/lib/constants";
 
@@ -46,6 +47,7 @@ export default function JPGtoPDFPage() {
                     "Download your PDF document",
                 ]}
             />
+            <ToolSEOContent toolId="jpg-to-pdf" />
         </>
     );
 }

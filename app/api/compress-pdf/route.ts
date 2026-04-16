@@ -26,10 +26,12 @@ type CompressionSettings = {
     gsResolution: number;
     gsJpegQuality: number;
     gsForceRecompressJpeg: boolean;
+    gsFlattenForms: boolean;
     gsAggressiveProfile: GhostscriptProfile;
     gsAggressiveResolution: number;
     gsAggressiveJpegQuality: number;
     gsAggressiveForceRecompressJpeg: boolean;
+    gsAggressiveFlattenForms: boolean;
 };
 
 const DEFAULT_TIMEOUT_MS = 2 * 60 * 1000;
@@ -133,19 +135,22 @@ function getCompressionSettings(level: string): CompressionSettings {
         case "low":
             return {
                 level: "low",
-                stripMetadata: false,
-                objectStreams: "preserve",
+                stripMetadata: true,
+                objectStreams: "generate",
                 recompressFlate: false,
                 timeoutMs: DEFAULT_TIMEOUT_MS,
-                allowLossy: false,
-                gsProfile: "ebook",
-                gsResolution: 150,
-                gsJpegQuality: 80,
+                // High quality compression tuned for readability with moderate savings.
+                allowLossy: true,
+                gsProfile: "printer",
+                gsResolution: 200,
+                gsJpegQuality: 88,
                 gsForceRecompressJpeg: false,
-                gsAggressiveProfile: "screen",
-                gsAggressiveResolution: 96,
-                gsAggressiveJpegQuality: 65,
+                gsFlattenForms: false,
+                gsAggressiveProfile: "ebook",
+                gsAggressiveResolution: 170,
+                gsAggressiveJpegQuality: 82,
                 gsAggressiveForceRecompressJpeg: false,
+                gsAggressiveFlattenForms: false,
             };
         case "high":
             return {
@@ -156,17 +161,20 @@ function getCompressionSettings(level: string): CompressionSettings {
                 timeoutMs: DEFAULT_TIMEOUT_MS,
                 allowLossy: true,
                 minSavingsBytes: 2 * 1024 * 1024,
-                gsProfile: "ebook",
-                gsResolution: 150,
-                gsJpegQuality: 75,
-                gsForceRecompressJpeg: false,
+                gsProfile: "screen",
+                gsResolution: 96,
+                gsJpegQuality: 60,
+                gsForceRecompressJpeg: true,
+                gsFlattenForms: true,
                 gsAggressiveProfile: "screen",
-                gsAggressiveResolution: 96,
-                gsAggressiveJpegQuality: 65,
-                gsAggressiveForceRecompressJpeg: false,
+                gsAggressiveResolution: 72,
+                gsAggressiveJpegQuality: 50,
+                gsAggressiveForceRecompressJpeg: true,
+                gsAggressiveFlattenForms: true,
             };
         case "ultra":
             return {
+                // Backward-compatible alias for legacy UI values.
                 level: "ultra",
                 stripMetadata: true,
                 objectStreams: "generate",
@@ -178,27 +186,33 @@ function getCompressionSettings(level: string): CompressionSettings {
                 gsResolution: 96,
                 gsJpegQuality: 60,
                 gsForceRecompressJpeg: true,
+                gsFlattenForms: true,
                 gsAggressiveProfile: "screen",
                 gsAggressiveResolution: 72,
                 gsAggressiveJpegQuality: 50,
                 gsAggressiveForceRecompressJpeg: true,
+                gsAggressiveFlattenForms: true,
             };
         default:
             return {
                 level: "medium",
                 stripMetadata: true,
                 objectStreams: "generate",
-                recompressFlate: false,
+                recompressFlate: true,
                 timeoutMs: DEFAULT_TIMEOUT_MS,
-                allowLossy: false,
+                // Balanced mode is now truly lossy for stronger real-world reduction.
+                allowLossy: true,
+                minSavingsBytes: 3 * 1024 * 1024,
                 gsProfile: "ebook",
-                gsResolution: 150,
-                gsJpegQuality: 75,
+                gsResolution: 144,
+                gsJpegQuality: 74,
                 gsForceRecompressJpeg: false,
+                gsFlattenForms: false,
                 gsAggressiveProfile: "screen",
-                gsAggressiveResolution: 96,
-                gsAggressiveJpegQuality: 65,
+                gsAggressiveResolution: 110,
+                gsAggressiveJpegQuality: 68,
                 gsAggressiveForceRecompressJpeg: false,
+                gsAggressiveFlattenForms: false,
             };
     }
 }
@@ -218,7 +232,7 @@ async function prepareInputFile(inputPath: string, tempDir: string, settings: Co
     return strippedPath;
 }
 
-type GhostscriptProfile = "ebook" | "screen";
+type GhostscriptProfile = "printer" | "ebook" | "screen";
 
 async function tryGhostscriptCompression(
     inputPath: string,
@@ -232,6 +246,7 @@ async function tryGhostscriptCompression(
             settings.gsResolution,
             settings.gsJpegQuality,
             settings.gsForceRecompressJpeg,
+            settings.gsFlattenForms,
             settings
         );
         let best = { bytes: first, profile: settings.gsProfile as GhostscriptProfile };
@@ -249,6 +264,7 @@ async function tryGhostscriptCompression(
                 settings.gsAggressiveResolution,
                 settings.gsAggressiveJpegQuality,
                 settings.gsAggressiveForceRecompressJpeg,
+                settings.gsAggressiveFlattenForms,
                 settings
             );
             if (second.length < best.bytes.length) {
@@ -269,6 +285,7 @@ async function compressWithGhostscript(
     resolution: number,
     jpegQuality: number,
     forceRecompressJpeg: boolean,
+    flattenForms: boolean,
     settings: CompressionSettings
 ): Promise<Uint8Array> {
     const gsPath = await resolveGhostscriptPath();
@@ -281,7 +298,8 @@ async function compressWithGhostscript(
         profile,
         resolution,
         jpegQuality,
-        forceRecompressJpeg
+        forceRecompressJpeg,
+        flattenForms
     );
 
     try {
@@ -298,7 +316,8 @@ function buildGhostscriptArgs(
     profile: GhostscriptProfile,
     resolution: number,
     jpegQuality: number,
-    forceRecompressJpeg: boolean
+    forceRecompressJpeg: boolean,
+    flattenForms: boolean
 ) {
     const monoResolution = Math.max(300, resolution * 2);
 
@@ -311,12 +330,26 @@ function buildGhostscriptArgs(
         "-dDetectDuplicateImages=true",
         "-dCompressFonts=true",
         "-dSubsetFonts=true",
+        "-dDiscardDocumentStructTree=true",
+        "-dDiscardUserProperties=true",
+        "-dPreserveAnnots=false",
+        "-dPreserveMarkedContent=false",
+        "-dPreserveCopyPage=false",
+        "-dPreserveEPSInfo=false",
+        "-dPreserveOPIComments=false",
+        "-dUCRandBGInfo=/Remove",
         "-dAutoRotatePages=/None",
         `-dPDFSETTINGS=/${profile}`,
         ...(forceRecompressJpeg ? ["-dPassThroughJPEGImages=false"] : []),
+        ...(flattenForms ? ["-dPrinted=true"] : []),
         "-dDownsampleColorImages=true",
         "-dDownsampleGrayImages=true",
         "-dDownsampleMonoImages=true",
+        "-dAutoFilterColorImages=false",
+        "-dAutoFilterGrayImages=false",
+        "-dColorImageFilter=/DCTEncode",
+        "-dGrayImageFilter=/DCTEncode",
+        "-dMonoImageFilter=/CCITTFaxEncode",
         "-dColorImageDownsampleType=/Bicubic",
         "-dGrayImageDownsampleType=/Bicubic",
         "-dMonoImageDownsampleType=/Subsample",
